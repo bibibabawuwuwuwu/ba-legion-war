@@ -97,6 +97,8 @@ body { font-family: 'Microsoft YaHei', sans-serif; background: #0d1117; color: #
   <div class="sep"></div>
   <button class="btn btn-gray" onclick="exportData()">导出</button>
   <button class="btn btn-gray" onclick="importData()">导入</button>
+  <div class="sep"></div>
+  <button class="btn btn-gray" onclick="clearBg()">清除当前区背景</button>
   <div class="spacer"></div>
   <span class="tip">拖拽成员到地图放上去 · 点击地图上的人名可删除</span>
 </div>
@@ -299,6 +301,17 @@ function renderRecords() {
     item.innerHTML = '<div class="member">' + escapeHtml(name) + '</div><div class="pos">位置: ' + Math.round(pos.x) + '% , ' + Math.round(pos.y) + '%</div>';
     list.appendChild(item);
   });
+}
+
+function clearBg() {
+  if (!bgImages[currentArea]) {
+    alert('当前区域没有背景图');
+    return;
+  }
+  if (!confirm('确定清除 ' + currentArea + ' 区背景图？（' + Math.round(bgImages[currentArea].length / 1024) + ' KB）')) return;
+  bgImages[currentArea] = null;
+  save();
+  renderMap();
 }
 
 // ═══════════════════════════════════════════
