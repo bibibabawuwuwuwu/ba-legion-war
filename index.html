@@ -119,10 +119,16 @@ body { font-family: 'Microsoft YaHei', sans-serif; background: #0d1117; color: #
         <p>请上传游戏截图作为背景</p>
         <label class="upload-btn" id="uploadLabel">
           上传 D 区背景图
+          <input type="file" accept="image/*" class="upload-input" id="bgFileInput" onchange="uploadBg(currentArea, this)">
+        </label>
+      </div>
+      <div id="bgWrapper" style="display:none; position:relative; max-width:100%; max-height:100%;">
+        <img id="mapBg" class="bg">
+        <label class="upload-btn" id="replaceLabel" style="position:absolute; bottom:12px; right:12px; opacity:0.85;">
+          更换背景图
           <input type="file" accept="image/*" class="upload-input" onchange="uploadBg(currentArea, this)">
         </label>
       </div>
-      <img id="mapBg" class="bg" style="display:none;">
     </div>
   </div>
 
@@ -213,12 +219,13 @@ function renderMap() {
   if (noBgText1) noBgText1.textContent = '当前 ' + currentArea + ' 区还没有设置背景图';
   if (uploadLabel) uploadLabel.childNodes[0].textContent = '上传 ' + currentArea + ' 区背景图 ';
 
+  var bgWrapper = document.getElementById('bgWrapper');
   if (bgImages[currentArea]) {
-    bg.src = bgImages[currentArea];
-    bg.style.display = 'block';
+    document.getElementById('mapBg').src = bgImages[currentArea];
+    bgWrapper.style.display = 'block';
     noBg.style.display = 'none';
   } else {
-    bg.style.display = 'none';
+    bgWrapper.style.display = 'none';
     noBg.style.display = 'block';
   }
 
