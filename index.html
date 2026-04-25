@@ -242,6 +242,10 @@ async function init() {
             });
             placements = payload.new.data.placements;
           }
+          if (payload.new.data.bgImages) {
+            bgImages = payload.new.data.bgImages;
+            idbPut('bgImages', bgImages);
+          }
         }
         render();
       } finally {
@@ -257,39 +261,71 @@ async function init() {
       .maybeSingle();
 
     if (resp && resp.data) {
-      if (resp.data.data && resp.data.data.members) {
-        members = resp.data.data.members;
-      }
-      if (resp.data.data && resp.data.data.placements) {
-        var p = resp.data.data.placements;
-        ['D','E','F'].forEach(function(z) {
-          if (!p[z]) return;
-          Object.keys(p[z]).forEach(function(name) {
-            var val = p[z][name];
-            if (!Array.isArray(val)) p[z][name] = [val];
+      if (resp.data.data) {
+        if (resp.data.data.members) {
+          members = resp.data.data.members;
+        }
+        if (resp.data.data.placements) {
+          var p = resp.data.data.placements;
+          ['D','E','F'].forEach(function(z) {
+            if (!p[z]) return;
+            Object.keys(p[z]).forEach(function(name) {
+              var val = p[z][name];
+              if (!Array.isArray(val)) p[z][name] = [val];
+            });
           });
-        });
-        placements = p;
+          placements = p;
+        }
+        if (resp.data.data.bgImages) {
+          bgImages = resp.data.data.bgImages;
+          idbPut('bgImages', bgImages);
+        }
       }
     } else {
       // 首次：插入一条空记录
-      await supabase.from('placements').insert([{ id: DB_ID, zone: 'shared', data: { members: [], placements: { D: {}, E: {}, F: {} } } }]);
+      await supabase.from('placements').insert([{ id: DB_ID, zone: 'shared', data: { members: [], placements: { D: {}, E: {}, F: {} }, bgImages: { D: null, E: null, F: null } } }]);
     }
   } catch(e) { console.warn('Supabase 加载失败', e); }
+
+  // Fallback：离线时从 localStorage 恢复成员和出刀记录
+  try {
+    var raw = localStorage.getItem('ba_legion_v5');
+    if (raw) {
+      var d = JSON.parse(raw);
+      if (members.length === 0 && d.members) members = d.members;
+      var hasPlacements = Object.keys(placements.D).length === 0 && Object.keys(placements.E).length === 0 && Object.keys(placements.F).length === 0;
+      if (hasPlacements && d.placements) {
+        ['D','E','F'].forEach(function(z) {
+          if (!d.placements[z]) return;
+          Object.keys(d.placements[z]).forEach(function(name) {
+            var val = d.placements[z][name];
+            if (!Array.isArray(val)) d.placements[z][name] = [val];
+          });
+        });
+        placements = d.placements;
+      }
+      if (d.bgImages) {
+        bgImages = d.bgImages;
+        idbPut('bgImages', bgImages);
+      }
+    }
+  } catch(e) {}
 }
 
 function save() {
   // 背景图存 IndexedDB（本地私有）
   idbPut('bgImages', bgImages).catch(function(e) { console.warn('IndexedDB 保存失败', e); });
 
-  // 成员+出刀记录同步到 Supabase（所有人共享）
-  if (supabaseSyncing) return;
+  // 成员+出刀记录+背景图同步到 Supabase（所有人共享）
+  if (supabaseSyncing) return Promise.resolve();
   supabaseSyncing = true;
-  supabase.from('placements').upsert({
+  return supabase.from('placements').upsert({
     id: DB_ID,
     zone: 'shared',
-    data: { members: members, placements: placements }
-  }).then(function() { supabaseSyncing = false; }).catch(function(e) {
+    data: { members: members, placements: placements, bgImages: bgImages }
+  }).then(function() {
+    supabaseSyncing = false;
+  }).catch(function(e) {
     supabaseSyncing = false;
     console.warn('Supabase 保存失败', e);
   });
@@ -599,7 +635,7 @@ document.querySelectorAll('.tab').forEach(function(btn) {
 // ═══════════════════════════════════════════
 function exportData() {
   try {
-    var blob = new Blob([JSON.stringify({ members: members, placements: placements }, null, 2)], {type:'application/json'});
+    var blob = new Blob([JSON.stringify({ members: members, placements: placements, bgImages: bgImages }, null, 2)], {type:'application/json'});
     var a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = 'legion_arrange.json';
@@ -620,8 +656,11 @@ function importData() {
         var d = JSON.parse(ev.target.result);
         members = d.members || [];
         placements = d.placements || { D: {}, E: {}, F: {} };
-        save();
-        render();
+        if (d.bgImages) bgImages = d.bgImages;
+        // 本地备份（离线时也能用）
+        try { localStorage.setItem('ba_legion_v5', JSON.stringify({ members: members, placements: placements, bgImages: bgImages })); } catch(e) {}
+        // 同步到 Supabase
+        save().then(function() { render(); });
       } catch(err) { alert('导入失败: 文件格式错误'); }
     };
     reader.readAsText(file);
