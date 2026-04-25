@@ -144,6 +144,7 @@ body { font-family: 'Microsoft YaHei', sans-serif; background: #0d1117; color: #
 // ═══════════════════════════════════════════
 let currentArea = 'D';
 let members = [];
+// 成员出刀记录：{ D: { "张三": [{x,y}, {x,y}], "李四": [{x,y}] } }
 let placements = { D: {}, E: {}, F: {} };
 let bgImages = { D: null, E: null, F: null };
 let db = null;
@@ -224,6 +225,17 @@ async function init() {
   } catch(e) {
     console.warn('IndexedDB 读取失败', e);
   }
+
+  // 迁移旧格式 placements（从 {name: {x,y}} 转为 {name: [{x,y}]}）
+  ['D','E','F'].forEach(function(z) {
+    if (!placements[z]) return;
+    Object.keys(placements[z]).forEach(function(name) {
+      var val = placements[z][name];
+      if (!Array.isArray(val)) {
+        placements[z][name] = [val];
+      }
+    });
+  });
 }
 
 function save() {
@@ -262,6 +274,7 @@ function renderChips() {
     chip.addEventListener('dragstart', function(e) {
       chip.classList.add('dragging');
       e.dataTransfer.setData('text/plain', name);
+      e.dataTransfer.setData('application/ba-source', 'chip');
       e.dataTransfer.effectAllowed = 'copy';
     });
     chip.addEventListener('dragend', function() {
@@ -293,31 +306,36 @@ function renderMap() {
   // Remove old placed elements
   document.querySelectorAll('.placed').forEach(function(el) { el.remove(); });
 
-  // Place members
+  // Place members — 每个成员可能有多个位置（数组）
   var zonePlacements = placements[currentArea] || {};
   Object.entries(zonePlacements).forEach(function(entry) {
     var name = entry[0];
-    var pos = entry[1];
-    createPlacedEl(name, pos.x, pos.y);
+    var positions = entry[1]; // array of {x, y}
+    positions.forEach(function(pos, idx) {
+      createPlacedEl(name, pos.x, pos.y, false, idx);
+    });
   });
 }
 
-function createPlacedEl(name, x, y, doSave) {
-  if (doSave === undefined) doSave = true;
+function createPlacedEl(name, x, y, doSave, knifeIndex) {
+  if (doSave === undefined) doSave = false;
   var container = document.getElementById('mapContainer');
   var el = document.createElement('div');
   el.className = 'placed';
   el.style.left = x + '%';
   el.style.top = y + '%';
   el.dataset.name = name;
-  el.textContent = name;
+  el.dataset.knife = knifeIndex !== undefined ? knifeIndex : 0;
+  // 显示第几刀
+  var label = knifeIndex !== undefined ? name + ' (' + (knifeIndex + 1) + '刀)' : name;
+  el.textContent = label;
 
   var delBtn = document.createElement('button');
   delBtn.className = 'del';
   delBtn.textContent = '×';
   delBtn.onclick = function(e) {
     e.stopPropagation();
-    removePlacement(name);
+    removePlacement(name, knifeIndex);
   };
   el.appendChild(delBtn);
 
@@ -325,6 +343,8 @@ function createPlacedEl(name, x, y, doSave) {
   el.addEventListener('dragstart', function(e) {
     el.style.opacity = '0.5';
     e.dataTransfer.setData('text/plain', name);
+    e.dataTransfer.setData('application/ba-source', 'placed');
+    e.dataTransfer.setData('application/ba-knife', knifeIndex);
     e.dataTransfer.effectAllowed = 'move';
   });
   el.addEventListener('dragend', function() {
@@ -335,7 +355,8 @@ function createPlacedEl(name, x, y, doSave) {
 
   if (doSave) {
     if (!placements[currentArea]) placements[currentArea] = {};
-    placements[currentArea][name] = { x: x, y: y };
+    if (!placements[currentArea][name]) placements[currentArea][name] = [];
+    placements[currentArea][name].push({ x: x, y: y });
     save();
     renderRecords();
   }
@@ -344,21 +365,25 @@ function createPlacedEl(name, x, y, doSave) {
 function renderRecords() {
   var list = document.getElementById('recordList');
   var zonePlacements = placements[currentArea] || {};
-  var keys = Object.keys(zonePlacements);
-  document.getElementById('placedCount').textContent = keys.length > 0 ? `(${keys.length}人)` : '';
+  var totalKnives = 0;
+  Object.values(zonePlacements).forEach(function(positions) { totalKnives += positions.length; });
+  document.getElementById('placedCount').textContent = totalKnives > 0 ? '(' + totalKnives + '刀)' : '';
 
-  if (keys.length === 0) {
+  if (totalKnives === 0) {
     list.innerHTML = '<div class="empty-msg">还没有人<br>拖拽成员到地图上开始</div>';
     return;
   }
 
   list.innerHTML = '';
-  keys.forEach(function(name) {
-    var pos = zonePlacements[name];
-    var item = document.createElement('div');
-    item.className = 'record-item';
-    item.innerHTML = '<div class="member">' + escapeHtml(name) + '</div><div class="pos">位置: ' + Math.round(pos.x) + '% , ' + Math.round(pos.y) + '%</div>';
-    list.appendChild(item);
+  Object.entries(zonePlacements).forEach(function(entry) {
+    var name = entry[0];
+    var positions = entry[1];
+    positions.forEach(function(pos, idx) {
+      var item = document.createElement('div');
+      item.className = 'record-item';
+      item.innerHTML = '<div class="member">' + escapeHtml(name) + ' <span style="color:#484f58;font-size:10px">第' + (idx + 1) + '刀</span></div><div class="pos">' + Math.round(pos.x) + '% , ' + Math.round(pos.y) + '%</div>';
+      list.appendChild(item);
+    });
   });
 }
 
@@ -407,7 +432,6 @@ mapPanel.addEventListener('dragover', function(e) {
   e.preventDefault();
   e.dataTransfer.dropEffect = 'copy';
 });
-
 mapPanel.addEventListener('drop', function(e) {
   e.preventDefault();
   var name = e.dataTransfer.getData('text/plain');
@@ -416,15 +440,47 @@ mapPanel.addEventListener('drop', function(e) {
   var rect = mapContainer.getBoundingClientRect();
   var x = ((e.clientX - rect.left) / rect.width) * 100;
   var y = ((e.clientY - rect.top) / rect.height) * 100;
-
   x = Math.max(3, Math.min(97, x));
   y = Math.max(3, Math.min(97, y));
 
-  createPlacedEl(name, x, y, true);
+  var source = e.dataTransfer.getData('application/ba-source');
+  var zone = placements[currentArea] || {};
+  var existing = zone[name] || [];
+
+  if (source === 'placed') {
+    // 从地图上已放置的元素拖拽：更新该刀的位置
+    var knifeIdx = parseInt(e.dataTransfer.getData('application/ba-knife'), 10);
+    if (!isNaN(knifeIdx) && zone[name] && zone[name][knifeIdx]) {
+      zone[name][knifeIdx] = { x: x, y: y };
+      save();
+      renderMap();
+      renderRecords();
+    }
+  } else {
+    // 从成员列表 chip 拖拽：新增一刀
+    if (existing.length >= 3) {
+      alert(name + ' 已排满3刀，无法继续添加');
+      return;
+    }
+    existing.push({ x: x, y: y });
+    zone[name] = existing;
+    placements[currentArea] = zone;
+    save();
+    renderMap();
+    renderRecords();
+  }
 });
 
-function removePlacement(name) {
-  if (placements[currentArea]) delete placements[currentArea][name];
+function removePlacement(name, knifeIndex) {
+  if (!placements[currentArea] || !placements[currentArea][name]) return;
+  if (knifeIndex !== undefined && knifeIndex !== null) {
+    placements[currentArea][name].splice(knifeIndex, 1);
+    if (placements[currentArea][name].length === 0) {
+      delete placements[currentArea][name];
+    }
+  } else {
+    delete placements[currentArea][name];
+  }
   save();
   renderMap();
   renderRecords();
