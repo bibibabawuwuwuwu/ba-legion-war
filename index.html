@@ -138,14 +138,14 @@ body { font-family: 'Microsoft YaHei', sans-serif; background: #0d1117; color: #
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
 // ═══════════════════════════════════════════
 // Supabase 配置（公共 anon key，前端安全）
 // ═══════════════════════════════════════════
 const SUPABASE_URL = 'https://gtnodvesfqajnhnzzcyp.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0bm9kdmVzZnFham5obnp6Y3lwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxMzYyMjMsImV4cCI6MjA5MjcxMjIyM30.pyxrplZ6O6FDOdCI8LCsltAiwI_JsF8H9oNSfEnj1aw';
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0bm9kdmVzZnFham5obnp6Y3lwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU1MjQ5MDYsImV4cCI6MjA2MTEwMDkwNn0.Vk7bCXC9Q3p1VCJ9j1aw';
+let supabase = null;
+let supabaseAvailable = false;
 const DB_ID = 'shared_state'; // 固定一条记录的 id
 
 // ═══════════════════════════════════════════
@@ -203,17 +203,62 @@ function idbPut(key, val) {
 }
 
 // ═══════════════════════════════════════════
-// 初始化
+// 动态加载 Supabase SDK
 // ═══════════════════════════════════════════
-async function init() {
-  // 1. 本地：先从 IndexedDB 恢复背景图（不阻塞渲染）
-  try {
-    await openDB();
-    var stored = await idbGet('bgImages');
-    if (stored) bgImages = stored;
-  } catch(e) { console.warn('IndexedDB 读取失败', e); }
+function loadSupabaseSDK() {
+  return new Promise(function(resolve) {
+    if (typeof window.supabase !== 'undefined') { resolve(); return; }
+    var s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js';
+    s.onload = function() { resolve(); };
+    s.onerror = function() { resolve(); }; // 加载失败也继续（本地模式）
+    document.head.appendChild(s);
+  });
+}
 
-  // 2. 远程：从 Supabase 恢复成员和出刀记录
+async function initSupabase() {
+  // 先动态加载 SDK
+  await loadSupabaseSDK();
+
+  // 尝试初始化 Supabase 客户端
+  try {
+    if (typeof window.supabase !== 'undefined' && window.supabase.createClient) {
+      supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+      supabaseAvailable = true;
+    }
+  } catch(e) { console.warn('Supabase 初始化失败', e); }
+
+  if (!supabaseAvailable) {
+    console.warn('Supabase 不可用，进入本地模式（数据不跨设备同步）');
+    // 仅从 IndexedDB 恢复背景图
+    try {
+      await openDB();
+      var stored = await idbGet('bgImages');
+      if (stored) bgImages = stored;
+    } catch(e) {}
+    // 从 localStorage 恢复成员和出刀记录
+    try {
+      var raw = localStorage.getItem('ba_legion_v5');
+      if (raw) {
+        var d = JSON.parse(raw);
+        if (d.members) members = d.members;
+        if (d.placements) {
+          ['D','E','F'].forEach(function(z) {
+            if (!d.placements[z]) return;
+            Object.keys(d.placements[z]).forEach(function(name) {
+              var val = d.placements[z][name];
+              if (!Array.isArray(val)) d.placements[z][name] = [val];
+            });
+          });
+          placements = d.placements;
+        }
+        if (d.bgImages) bgImages = d.bgImages;
+      }
+    } catch(e) {}
+    return;
+  }
+
+  // Supabase 可用：订阅实时同步
   try {
     var ref = supabase.channel('placements-sync');
     ref.on('postgres_changes', {
@@ -312,14 +357,26 @@ async function init() {
   } catch(e) {}
 }
 
+async function init() {
+  // 1. 本地：先从 IndexedDB 恢复背景图（不阻塞渲染）
+  try {
+    await openDB();
+    var stored = await idbGet('bgImages');
+    if (stored) bgImages = stored;
+  } catch(e) { console.warn('IndexedDB 读取失败', e); }
+
+  // 2. 加载/连接 Supabase
+  await initSupabase();
+}
+
 function save() {
   // 背景图存 IndexedDB（本地私有）
   idbPut('bgImages', bgImages).catch(function(e) { console.warn('IndexedDB 保存失败', e); });
 
   // 成员+出刀记录+背景图同步到 Supabase（所有人共享）
-  if (supabaseSyncing) return Promise.resolve();
+  if (!supabaseAvailable || supabaseSyncing) return;
   supabaseSyncing = true;
-  return supabase.from('placements').upsert({
+  supabase.from('placements').upsert({
     id: DB_ID,
     zone: 'shared',
     data: { members: members, placements: placements, bgImages: bgImages }
@@ -659,8 +716,9 @@ function importData() {
         if (d.bgImages) bgImages = d.bgImages;
         // 本地备份（离线时也能用）
         try { localStorage.setItem('ba_legion_v5', JSON.stringify({ members: members, placements: placements, bgImages: bgImages })); } catch(e) {}
-        // 同步到 Supabase
-        save().then(function() { render(); });
+        // 同步到 Supabase（如果有的话），然后刷新
+        save();
+        setTimeout(function() { render(); }, 100);
       } catch(err) { alert('导入失败: 文件格式错误'); }
     };
     reader.readAsText(file);
