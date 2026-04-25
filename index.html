@@ -115,11 +115,11 @@ body { font-family: 'Microsoft YaHei', sans-serif; background: #0d1117; color: #
   <div class="map-panel" id="mapPanel">
     <div class="map-container" id="mapContainer">
       <div class="no-bg" id="noBg">
-        <p>当前 D 区还没有设置背景图</p>
+        <p id="noBgText1">当前 D 区还没有设置背景图</p>
         <p>请上传游戏截图作为背景</p>
-        <label class="upload-btn">
+        <label class="upload-btn" id="uploadLabel">
           上传 D 区背景图
-          <input type="file" accept="image/*" class="upload-input" onchange="uploadBg('D', this)">
+          <input type="file" accept="image/*" class="upload-input" onchange="uploadBg(currentArea, this)">
         </label>
       </div>
       <img id="mapBg" class="bg" style="display:none;">
@@ -205,8 +205,13 @@ function renderChips() {
 }
 
 function renderMap() {
-  const bg = document.getElementById('mapBg');
-  const noBg = document.getElementById('noBg');
+  var bg = document.getElementById('mapBg');
+  var noBg = document.getElementById('noBg');
+  var noBgText1 = document.getElementById('noBgText1');
+  var uploadLabel = document.getElementById('uploadLabel');
+
+  if (noBgText1) noBgText1.textContent = '当前 ' + currentArea + ' 区还没有设置背景图';
+  if (uploadLabel) uploadLabel.childNodes[0].textContent = '上传 ' + currentArea + ' 区背景图 ';
 
   if (bgImages[currentArea]) {
     bg.src = bgImages[currentArea];
