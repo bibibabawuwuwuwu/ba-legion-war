@@ -124,13 +124,7 @@ body { font-family: 'Microsoft YaHei', sans-serif; background: #0d1117; color: #
           <input type="file" accept="image/*" class="upload-input" id="bgFileInput" onchange="uploadBg(currentArea, this)">
         </label>
       </div>
-      <div id="bgWrapper" style="display:none; position:relative; max-width:100%; max-height:100%;">
-        <img id="mapBg" class="bg">
-        <label class="upload-btn" id="replaceLabel" style="position:absolute; bottom:12px; right:12px; opacity:0.85;">
-          更换背景图
-          <input type="file" accept="image/*" class="upload-input" onchange="uploadBg(currentArea, this)">
-        </label>
-      </div>
+      <img id="mapBg" class="bg" style="display:none;">
     </div>
   </div>
 
@@ -152,31 +146,97 @@ let currentArea = 'D';
 let members = [];
 let placements = { D: {}, E: {}, F: {} };
 let bgImages = { D: null, E: null, F: null };
+let db = null;
+const DB_NAME = 'ba_legion_db';
+const DB_VER = 1;
+const STORE_NAME = 'bg_store';
+
+// ═══════════════════════════════════════════
+// IndexedDB 初始化
+// ═══════════════════════════════════════════
+function openDB() {
+  return new Promise(function(resolve, reject) {
+    var req = indexedDB.open(DB_NAME, DB_VER);
+    req.onerror = function() { reject(req.error); };
+    req.onsuccess = function() { db = req.result; resolve(db); };
+    req.onupgradeneeded = function(e) {
+      var d = e.target.result;
+      if (!d.objectStoreNames.contains(STORE_NAME)) {
+        d.createObjectStore(STORE_NAME);
+      }
+    };
+  });
+}
+
+function idbGet(key) {
+  return new Promise(function(resolve, reject) {
+    if (!db) { resolve(null); return; }
+    var tx = db.transaction(STORE_NAME, 'readonly');
+    var store = tx.objectStore(STORE_NAME);
+    var r = store.get(key);
+    r.onsuccess = function() { resolve(r.result || null); };
+    r.onerror = function() { reject(r.error); };
+  });
+}
+
+function idbPut(key, val) {
+  return new Promise(function(resolve, reject) {
+    if (!db) { resolve(null); return; }
+    var tx = db.transaction(STORE_NAME, 'readwrite');
+    var store = tx.objectStore(STORE_NAME);
+    var r = store.put(val, key);
+    r.onsuccess = function() { resolve(); };
+    r.onerror = function() { reject(r.error); };
+  });
+}
+
+function idbDelete(key) {
+  return new Promise(function(resolve, reject) {
+    if (!db) { resolve(null); return; }
+    var tx = db.transaction(STORE_NAME, 'readwrite');
+    var store = tx.objectStore(STORE_NAME);
+    var r = store.delete(key);
+    r.onsuccess = function() { resolve(); };
+    r.onerror = function() { reject(r.error); };
+  });
+}
 
 // ═══════════════════════════════════════════
 // 初始化
 // ═══════════════════════════════════════════
-function init() {
+async function init() {
+  // 同步：先恢复成员和出刀记录（localStorage，小数据）
   try {
-    const raw = localStorage.getItem('ba_legion_v5');
+    var raw = localStorage.getItem('ba_legion_v5');
     if (raw) {
-      const d = JSON.parse(raw);
+      var d = JSON.parse(raw);
       members = d.members || [];
       placements = d.placements || { D: {}, E: {}, F: {} };
-      bgImages = d.bgImages || { D: null, E: null, F: null };
+      // bgImages 不从 localStorage 读，改为异步从 IndexedDB 读
     }
   } catch(e) {}
+
+  // 异步：打开 IndexedDB 并加载背景图
+  try {
+    await openDB();
+    var stored = await idbGet('bgImages');
+    if (stored) bgImages = stored;
+  } catch(e) {
+    console.warn('IndexedDB 读取失败', e);
+  }
 }
-init();
 
 function save() {
+  // 成员和出刀记录存 localStorage（很小）
   try {
-    localStorage.setItem('ba_legion_v5', JSON.stringify({ members, placements, bgImages }));
+    localStorage.setItem('ba_legion_v5', JSON.stringify({ members: members, placements: placements }));
   } catch(e) {
-    if (e.name === 'QuotaExceededError') {
-      alert('存储空间已满，请导出数据后清除部分背景图');
-    }
+    console.warn('localStorage 保存失败', e);
   }
+  // 背景图存 IndexedDB（支持大容量）
+  idbPut('bgImages', bgImages).catch(function(e) {
+    console.warn('IndexedDB 保存失败', e);
+  });
 }
 
 // ═══════════════════════════════════════════
@@ -221,13 +281,12 @@ function renderMap() {
   if (noBgText1) noBgText1.textContent = '当前 ' + currentArea + ' 区还没有设置背景图';
   if (uploadLabel) uploadLabel.childNodes[0].textContent = '上传 ' + currentArea + ' 区背景图 ';
 
-  var bgWrapper = document.getElementById('bgWrapper');
   if (bgImages[currentArea]) {
     document.getElementById('mapBg').src = bgImages[currentArea];
-    bgWrapper.style.display = 'block';
+    document.getElementById('mapBg').style.display = 'block';
     noBg.style.display = 'none';
   } else {
-    bgWrapper.style.display = 'none';
+    document.getElementById('mapBg').style.display = 'none';
     noBg.style.display = 'block';
   }
 
@@ -453,7 +512,7 @@ function escapeHtml(str) {
 // ═══════════════════════════════════════════
 // 启动
 // ═══════════════════════════════════════════
-render();
+init().then(render);
 </script>
 </body>
 </html>
