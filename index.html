@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>军团战排刀台</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Microsoft YaHei', sans-serif; background: #1a1a2e; color: #e0e0e0; min-height: 100vh; }
+
+.header { background: #16213e; padding: 16px 24px; display: flex; align-items: center; gap: 24px; border-bottom: 2px solid #0f3460; }
+.header h1 { color: #e94560; font-size: 22px; letter-spacing: 2px; }
+.header .subtitle { color: #888; font-size: 13px; }
+
+.tabs { display: flex; gap: 4px; margin-left: auto; }
+.tab { padding: 8px 28px; border: none; border-radius: 6px 6px 0 0; cursor: pointer; font-size: 16px; font-weight: bold; background: #0f3460; color: #aaa; transition: .2s; }
+.tab.active { background: #e94560; color: #fff; }
+.tab:hover:not(.active) { background: #1a4a7a; color: #fff; }
+
+.toolbar { background: #16213e; padding: 12px 24px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #0f3460; }
+.toolbar label { color: #aaa; font-size: 14px; }
+.toolbar input { background: #0f3460; border: 1px solid #2a5a8a; color: #fff; padding: 6px 12px; border-radius: 6px; font-size: 14px; }
+.toolbar input:focus { outline: none; border-color: #e94560; }
+.toolbar button { background: #e94560; border: none; color: #fff; padding: 7px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; }
+.toolbar button:hover { background: #ff6b6b; }
+.toolbar .hint { margin-left: auto; color: #666; font-size: 13px; }
+
+.main { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 20px; height: calc(100vh - 130px); }
+
+.panel { background: #16213e; border-radius: 12px; border: 1px solid #0f3460; display: flex; flex-direction: column; overflow: hidden; }
+.panel-header { padding: 12px 16px; background: #0f3460; font-size: 14px; color: #e94560; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
+.panel-header span { font-size: 12px; color: #666; font-weight: normal; }
+.panel-body { flex: 1; overflow-y: auto; padding: 8px; }
+
+.grid-table { width: 100%; border-collapse: collapse; }
+.grid-table th { background: #0f3460; color: #aaa; padding: 8px 12px; text-align: left; font-size: 13px; border-bottom: 1px solid #1a4a7a; }
+.grid-table td { padding: 10px 12px; border-bottom: 1px solid #1a2a4a; font-size: 14px; vertical-align: middle; }
+.grid-table tr:hover td { background: #1a2a4a; }
+.grid-table .pos { color: #e94560; font-weight: bold; width: 60px; }
+.grid-table .hp { color: #4fc3f7; font-size: 13px; }
+.grid-table .assignee { color: #fff; }
+.grid-table .empty { color: #555; font-style: italic; }
+.grid-table .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; background: #1a4a7a; color: #4fc3f7; margin-left: 8px; }
+.grid-table tr.has-assignee td:first-child { border-left: 3px solid #e94560; }
+
+.assign-panel { padding: 8px; }
+.assign-panel h3 { color: #e94560; margin-bottom: 12px; font-size: 14px; }
+.assign-panel select { width: 100%; background: #0f3460; border: 1px solid #2a5a8a; color: #fff; padding: 10px; border-radius: 8px; font-size: 14px; margin-bottom: 8px; }
+.assign-panel select:focus { outline: none; border-color: #e94560; }
+.assign-panel button { width: 100%; padding: 10px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; margin-top: 4px; }
+.btn-assign { background: #e94560; color: #fff; }
+.btn-assign:hover { background: #ff6b6b; }
+.btn-clear { background: #333; color: #aaa; }
+.btn-clear:hover { background: #444; }
+
+.record-list { list-style: none; }
+.record-list li { padding: 8px 10px; border-radius: 6px; margin-bottom: 4px; background: #1a2a4a; display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
+.record-list li .name { color: #4fc3f7; font-weight: bold; }
+.record-list li .target { color: #e94560; }
+.record-list li .time { color: #555; font-size: 11px; }
+.record-list li .del { background: #333; border: none; color: #888; padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; }
+.record-list li .del:hover { background: #c00; color: #fff; }
+
+.clear-btn { background: #c00; color: #fff; border: none; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+.clear-btn:hover { background: #a00; }
+
+@media (max-width: 900px) {
+  .main { grid-template-columns: 1fr; height: auto; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>军团战排刀台</h1>
+  <span class="subtitle">D / E / F 三区域 · 指挥分配谁打哪个</span>
+  <div class="tabs">
+    <button class="tab active" data-area="D">D区</button>
+    <button class="tab" data-area="E">E区</button>
+    <button class="tab" data-area="F">F区</button>
+  </div>
+</div>
+
+<div class="toolbar">
+  <label>成员昵称：</label>
+  <input type="text" id="newMemberName" placeholder="输入成员昵称后回车添加" onkeydown="if(event.key==='Enter')addMember()">
+  <button onclick="addMember()">添加成员</button>
+  <span class="hint">点击据点选中 → 右侧分配成员</span>
+</div>
+
+<div class="main">
+  <!-- 左：据点列表 -->
+  <div class="panel">
+    <div class="panel-header">
+      <span id="areaTitle">D区 据点</span>
+      <button class="clear-btn" onclick="clearAssignments()">清空分配</button>
+    </div>
+    <div class="panel-body">
+      <table class="grid-table" id="strongholdTable">
+        <thead><tr><th>据点</th><th>分配</th></tr></thead>
+        <tbody id="strongholdBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 右：分配 + 出刀记录 -->
+  <div class="panel">
+    <div class="panel-body">
+      <div class="assign-panel" style="margin-bottom:16px;">
+        <h3 id="assignTitle">请先点击左侧一个据点</h3>
+        <select id="memberSelect"></select>
+        <button class="btn-assign" onclick="doAssign()">确认分配</button>
+        <button class="btn-clear" onclick="cancelAssign()">取消此据点</button>
+      </div>
+      <div class="panel-header" style="border-radius:8px;margin:0 0 8px 0;">出刀安排记录 <span id="recordCount"></span></div>
+      <ul class="record-list" id="recordList"></ul>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── 数据模型 ──
+const AREAS = ['D', 'E', 'F'];
+const STRONGHOLDS_PER_AREA = 10; // 每区10个据点: 1~10
+
+let currentArea = 'D';
+let selectedStronghold = null; // null 或 "D1" 这样的字符串
+
+// assignments: { "D1": "成员名", "D2": null, ... }
+// members: ["成员1", "成员2", ...]
+// records: [{stronghold, member, time}, ...]
+
+function initData() {
+  let data = localStorage.getItem('ba_legion_data');
+  if (data) {
+    data = JSON.parse(data);
+  } else {
+    data = { assignments: {}, members: [], records: [] };
+    // 初始化所有据点
+    for (let area of AREAS) {
+      for (let i = 1; i <= STRONGHOLDS_PER_AREA; i++) {
+        data.assignments[area + i] = null;
+      }
+    }
+  }
+  return data;
+}
+
+let state = initData();
+let assignments = state.assignments;
+let members = state.members;
+let records = state.records;
+
+function save() {
+  localStorage.setItem('ba_legion_data', JSON.stringify({ assignments, members, records }));
+}
+
+// ── 渲染 ──
+function render() {
+  renderStrongholds();
+  renderMemberSelect();
+  renderRecords();
+  updateAssignTitle();
+}
+
+function renderStrongholds() {
+  document.getElementById('areaTitle').textContent = currentArea + '区 据点';
+  const tbody = document.getElementById('strongholdBody');
+  tbody.innerHTML = '';
+  for (let i = 1; i <= STRONGHOLDS_PER_AREA; i++) {
+    const key = currentArea + i;
+    const assignee = assignments[key];
+    const tr = document.createElement('tr');
+    const isSelected = selectedStronghold === key;
+    tr.className = assignee ? 'has-assignee' : '';
+    if (isSelected) tr.style.background = '#2a1a3a';
+    tr.style.cursor = 'pointer';
+    tr.innerHTML = `
+      <td class="pos">${key}</td>
+      <td class="${assignee ? 'assignee' : 'empty'}" onclick="selectStronghold('${key}')">${assignee || '待分配'}</td>
+    `;
+    if (isSelected) {
+      tr.style.outline = '2px solid #e94560';
+      tr.style.borderRadius = '4px';
+    }
+    tbody.appendChild(tr);
+  }
+}
+
+function renderMemberSelect() {
+  const sel = document.getElementById('memberSelect');
+  sel.innerHTML = '<option value="">-- 选择成员 --</option>';
+  for (let m of members) {
+    sel.innerHTML += `<option value="${m}">${m}</option>`;
+  }
+}
+
+function renderRecords() {
+  const list = document.getElementById('recordList');
+  document.getElementById('recordCount').textContent = `共 ${records.length} 条`;
+  list.innerHTML = '';
+  // 按时间倒序
+  const reversed = [...records].reverse();
+  for (let r of reversed) {
+    const li = document.createElement('li');
+    li.innerHTML = `
+      <div>
+        <span class="name">${r.member}</span>
+        <span style="color:#555;margin:0 6px;">→</span>
+        <span class="target">${r.stronghold}</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span class="time">${r.time}</span>
+        <button class="del" onclick="delRecord(${records.indexOf(r)})">删除</button>
+      </div>
+    `;
+    list.appendChild(li);
+  }
+}
+
+function updateAssignTitle() {
+  const title = document.getElementById('assignTitle');
+  if (selectedStronghold) {
+    const cur = assignments[selectedStronghold];
+    title.textContent = `分配 ${selectedStronghold} ${cur ? '（当前：' + cur + '）' : '（当前：无人）'}`;
+    title.style.color = '#4fc3f7';
+  } else {
+    title.textContent = '请先点击左侧一个据点';
+    title.style.color = '#e94560';
+  }
+}
+
+// ── 操作 ──
+function selectStronghold(key) {
+  selectedStronghold = key;
+  render();
+}
+
+function doAssign() {
+  if (!selectedStronghold) { alert('请先选择一个据点'); return; }
+  const member = document.getElementById('memberSelect').value;
+  if (!member) { alert('请选择成员'); return; }
+  // 旧分配
+  const old = assignments[selectedStronghold];
+  // 记记录
+  records.push({ stronghold: selectedStronghold, member: member, time: new Date().toLocaleTimeString('zh-CN', {hour:'2-digit', minute:'2-digit'}) });
+  // 更新
+  assignments[selectedStronghold] = member;
+  save();
+  render();
+  // 清空选择
+  document.getElementById('memberSelect').value = '';
+}
+
+function cancelAssign() {
+  if (!selectedStronghold) return;
+  // 移除该据点的分配记录
+  records = records.filter(r => r.stronghold !== selectedStronghold);
+  assignments[selectedStronghold] = null;
+  save();
+  render();
+}
+
+function delRecord(idx) {
+  // 找到原始索引并删除
+  const reversed = [...records].reverse();
+  const origIdx = records.indexOf(reversed[idx]);
+  const key = records[origIdx].stronghold;
+  records.splice(origIdx, 1);
+  // 该据点是否还有其他记录
+  const stillAssigned = records.some(r => r.stronghold === key);
+  if (!stillAssigned) assignments[key] = null;
+  save();
+  render();
+}
+
+function addMember() {
+  const name = document.getElementById('newMemberName').value.trim();
+  if (!name) return;
+  if (!members.includes(name)) {
+    members.push(name);
+    save();
+    renderMemberSelect();
+  }
+  document.getElementById('newMemberName').value = '';
+}
+
+function clearAssignments() {
+  if (!confirm('确定清空当前区域所有分配？')) return;
+  for (let i = 1; i <= STRONGHOLDS_PER_AREA; i++) {
+    const key = currentArea + i;
+    assignments[key] = null;
+  }
+  records = records.filter(r => !r.stronghold.startsWith(currentArea));
+  selectedStronghold = null;
+  save();
+  render();
+}
+
+// ── 切换区域 ──
+document.querySelectorAll('.tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentArea = btn.dataset.area;
+    selectedStronghold = null;
+    render();
+  });
+});
+
+// ── 初始化 ──
+render();
+</script>
+</body>
+</html>
