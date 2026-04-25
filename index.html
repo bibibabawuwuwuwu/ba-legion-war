@@ -6,512 +6,367 @@
 <title>军团战排刀台</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: 'Microsoft YaHei', sans-serif; background: #f0f4f8; color: #222; min-height: 100vh; }
+body { font-family: 'Microsoft YaHei', sans-serif; background: #0d1117; color: #e6edf3; min-height: 100vh; overflow: hidden; }
 
-.header { background: #1a3a5c; padding: 12px 24px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
-.header h1 { color: #fff; font-size: 20px; letter-spacing: 2px; }
-.header .subtitle { color: #8ab4d4; font-size: 13px; }
-.tabs { display: flex; gap: 4px; margin-left: 20px; }
-.tab { padding: 8px 22px; border: none; border-radius: 6px 6px 0 0; cursor: pointer; font-size: 15px; font-weight: bold; background: #2a5a8c; color: #aac; transition: .2s; }
+.header { background: #161b22; padding: 12px 20px; display: flex; align-items: center; gap: 16px; border-bottom: 1px solid #30363d; }
+.header h1 { color: #e94560; font-size: 18px; letter-spacing: 2px; }
+.tabs { display: flex; gap: 4px; margin-left: auto; }
+.tab { padding: 8px 20px; border: none; border-radius: 6px 6px 0 0; cursor: pointer; font-size: 14px; font-weight: bold; background: #21262d; color: #8b949e; transition: .2s; }
 .tab.active { background: #e94560; color: #fff; }
-.tab:hover:not(.active) { background: #3a6a9c; color: #fff; }
+.tab:hover:not(.active) { background: #30363d; color: #e6edf3; }
+.header .hint { color: #484f58; font-size: 12px; }
 
-.toolbar { background: #fff; padding: 10px 24px; display: flex; align-items: center; gap: 10px; border-bottom: 2px solid #dde; box-shadow: 0 2px 4px rgba(0,0,0,0.06); flex-wrap: wrap; }
-.toolbar label { color: #555; font-size: 13px; font-weight: bold; }
-.toolbar input { background: #f8fafc; border: 2px solid #cce; color: #222; padding: 7px 12px; border-radius: 8px; font-size: 13px; font-family: inherit; }
-.toolbar input:focus { outline: none; border-color: #e94560; background: #fff; }
-.toolbar button { background: #e94560; border: none; color: #fff; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: bold; font-family: inherit; transition: background .2s; }
-.toolbar button:hover { background: #d63050; }
-.toolbar button.secondary { background: #3a6a9c; }
-.toolbar button.secondary:hover { background: #2a5a8c; }
-.toolbar .hint { margin-left: auto; color: #999; font-size: 12px; }
-.status-badge { background: #1a3a5c; color: #fff; font-size: 12px; padding: 5px 12px; border-radius: 20px; margin-left: auto; }
-.status-badge strong { color: #e94560; }
+.toolbar { background: #0d1117; padding: 10px 20px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #21262d; flex-wrap: wrap; }
+.toolbar label { color: #8b949e; font-size: 13px; }
+.toolbar input[type="text"] { background: #161b22; border: 1px solid #30363d; color: #e6edf3; padding: 7px 12px; border-radius: 6px; font-size: 13px; font-family: inherit; width: 140px; }
+.toolbar input[type="text"]:focus { outline: none; border-color: #e94560; }
+.toolbar input[type="text"]::placeholder { color: #484f58; }
+.btn { background: #238636; border: none; color: #fff; padding: 7px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold; font-family: inherit; transition: background .2s; }
+.btn:hover { background: #2ea043; }
+.btn-red { background: #da3633; }
+.btn-red:hover { background: #f85149; }
+.btn-gray { background: #21262d; color: #8b949e; border: 1px solid #30363d; }
+.btn-gray:hover { background: #30363d; color: #e6edf3; }
+.toolbar .sep { width: 1px; height: 24px; background: #30363d; margin: 0 4px; }
+.toolbar .spacer { flex: 1; }
+.toolbar .tip { color: #484f58; font-size: 12px; }
 
-.main { display: flex; height: calc(100vh - 120px); overflow: hidden; }
+.main { display: flex; height: calc(100vh - 108px); overflow: hidden; }
 
-/* 左侧地图 */
-.map-area { flex: 1; position: relative; overflow: auto; background: #e8eef4; border-right: 3px solid #cce; }
+/* 左侧：拖拽成员区 */
+.member-panel { width: 220px; background: #161b22; border-right: 1px solid #30363d; display: flex; flex-direction: column; }
+.member-panel h3 { padding: 12px 14px 8px; font-size: 12px; color: #484f58; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid #21262d; display: flex; justify-content: space-between; align-items: center; }
+.member-panel h3 span { font-size: 11px; color: #e94560; }
+.member-input { padding: 10px 14px; border-bottom: 1px solid #21262d; }
+.member-input input { width: 100%; background: #0d1117; border: 1px solid #30363d; color: #e6edf3; padding: 6px 10px; border-radius: 6px; font-size: 12px; font-family: inherit; box-sizing: border-box; }
+.member-input input:focus { outline: none; border-color: #e94560; }
+.member-chips { flex: 1; overflow-y: auto; padding: 10px 14px; display: flex; flex-wrap: wrap; gap: 6px; align-content: flex-start; }
+.chip { background: #1f6feb; color: #fff; font-size: 12px; padding: 5px 10px; border-radius: 20px; cursor: grab; user-select: none; display: flex; align-items: center; gap: 4px; white-space: nowrap; box-shadow: 0 2px 6px rgba(31,111,235,0.3); transition: transform .1s, background .2s; }
+.chip:hover { background: #388bfd; transform: scale(1.05); }
+.chip:active { cursor: grabbing; }
+.chip .x { background: rgba(255,255,255,0.2); border: none; color: #fff; width: 16px; height: 16px; border-radius: 50%; cursor: pointer; font-size: 10px; line-height: 16px; text-align: center; flex-shrink: 0; }
+.chip .x:hover { background: #f85149; }
+.chip.dragging { opacity: 0.5; transform: scale(0.9); }
 
-.map-inner { position: relative; width: 100%; height: 100%; min-width: 700px; min-height: 500px; }
+/* 中间：地图区 */
+.map-panel { flex: 1; position: relative; overflow: hidden; background: #0d1117; }
+.map-container { position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+.map-container img.bg { max-width: 100%; max-height: 100%; display: block; pointer-events: none; border-radius: 4px; }
+.no-bg { color: #484f58; font-size: 14px; text-align: center; padding: 40px 20px; line-height: 2; }
+.no-bg p { margin: 6px 0; }
+.upload-btn { display: inline-block; background: #238636; color: #fff; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; margin-top: 8px; }
+.upload-btn:hover { background: #2ea043; }
+.upload-input { display: none; }
 
-/* 据点热区 */
-.hotspot {
-  position: absolute;
-  transform: translate(-50%, -50%);
-  cursor: pointer;
-  z-index: 10;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 3px;
-  transition: transform .1s;
-}
-.hotspot:hover { transform: translate(-50%, -50%) scale(1.08); }
-.hotspot:active { transform: translate(-50%, -50%) scale(0.95); }
+/* 地图上的已放置成员 */
+.placed { position: absolute; transform: translate(-50%,-50%); background: #1f6feb; color: #fff; font-size: 12px; padding: 5px 12px; border-radius: 20px; cursor: grab; user-select: none; white-space: nowrap; box-shadow: 0 2px 8px rgba(31,111,235,0.5); border: 2px solid rgba(255,255,255,0.3); z-index: 10; transition: box-shadow .2s, background .2s; }
+.placed:hover { background: #388bfd; box-shadow: 0 4px 16px rgba(31,111,235,0.6); }
+.placed .del { position: absolute; top: -7px; right: -7px; background: #da3633; border: none; color: #fff; width: 18px; height: 18px; border-radius: 50%; cursor: pointer; font-size: 11px; line-height: 18px; text-align: center; display: none; }
+.placed:hover .del { display: block; }
 
-.hotspot .circle {
-  width: 52px; height: 52px;
-  border-radius: 50%;
-  background: #e94560;
-  border: 3px solid #fff;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 14px; font-weight: bold; color: #fff;
-  box-shadow: 0 3px 12px rgba(233,69,96,0.5);
-}
-.hotspot.assigned .circle { background: #27ae60; box-shadow: 0 3px 12px rgba(39,174,96,0.5); }
-.hotspot.selected .circle { background: #f39c12; box-shadow: 0 0 0 4px rgba(243,156,18,0.3), 0 3px 12px rgba(243,156,18,0.5); transform: scale(1.1); }
-
-.hotspot .enemy-tag {
-  background: rgba(15,25,45,0.88);
-  color: #ff8a9a;
-  font-size: 10px;
-  padding: 2px 7px;
-  border-radius: 10px;
-  white-space: nowrap;
-  max-width: 88px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  text-align: center;
-  border: 1px solid rgba(255,138,154,0.4);
-  font-weight: bold;
-}
-.hotspot.assigned .enemy-tag { color: #81c784; border-color: rgba(129,199,132,0.4); }
-
-.hotspot .my-tag {
-  background: rgba(26,58,92,0.9);
-  color: #4fc3f7;
-  font-size: 10px;
-  padding: 2px 7px;
-  border-radius: 10px;
-  white-space: nowrap;
-  max-width: 88px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  text-align: center;
-  border: 1px solid rgba(79,195,247,0.4);
-  display: none;
-  font-weight: bold;
-}
-.hotspot.assigned .my-tag { display: block; }
-
-/* 右侧面板 */
-.side-panel { width: 290px; background: #fff; display: flex; flex-direction: column; overflow: hidden; }
-
-.panel-section { padding: 14px; border-bottom: 2px solid #dde; }
-.panel-section h3 { font-size: 13px; color: #1a3a5c; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 10px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
-.panel-section h3 span { color: #e94560; font-size: 15px; }
-
-.no-select-msg { color: #999; font-size: 13px; text-align: center; padding: 20px 10px; background: #f8fafc; border-radius: 8px; border: 2px dashed #dde; }
-
-.assign-card { background: #f8fafc; border-radius: 10px; padding: 14px; border: 2px solid #cce; }
-.assign-card .pos-badge { display: inline-block; background: #e94560; color: #fff; font-size: 15px; font-weight: bold; padding: 4px 14px; border-radius: 20px; margin-bottom: 8px; }
-.assign-card .enemy-info { color: #666; font-size: 12px; margin-bottom: 10px; }
-.assign-card .enemy-info strong { color: #e94560; }
-.assign-card select { width: 100%; background: #fff; border: 2px solid #cce; color: #222; padding: 9px; border-radius: 8px; font-size: 13px; font-family: inherit; margin-bottom: 8px; }
-.assign-card select:focus { outline: none; border-color: #e94560; }
-.assign-card .btn-assign { width: 100%; padding: 10px; background: #e94560; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: bold; font-family: inherit; margin-bottom: 6px; }
-.assign-card .btn-assign:hover { background: #d63050; }
-.assign-card .btn-cancel { width: 100%; padding: 8px; background: #f0f0f0; color: #888; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; font-family: inherit; }
-
-/* 成员列表 */
-.member-list { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px; background: #f8fafc; border-radius: 8px; min-height: 40px; }
-.member-chip { background: #1a3a5c; color: #fff; font-size: 12px; padding: 4px 10px; border-radius: 20px; display: flex; align-items: center; gap: 4px; }
-.member-chip .del-m { background: rgba(255,255,255,0.2); border: none; color: #fff; width: 16px; height: 16px; border-radius: 50%; cursor: pointer; font-size: 10px; line-height: 1; }
-
-/* 记录列表 */
-.record-section { flex: 1; overflow-y: auto; padding: 12px; }
-.record-section > h3 { font-size: 13px; color: #1a3a5c; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 10px; font-weight: bold; }
-.record-list { list-style: none; }
-.record-list li { background: #f8fafc; border-radius: 8px; padding: 9px 12px; margin-bottom: 7px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid #27ae60; }
-.record-list li .info { display: flex; flex-direction: column; gap: 2px; }
-.record-list li .member { color: #1a3a5c; font-size: 13px; font-weight: bold; }
-.record-list li .target { color: #e94560; font-size: 12px; }
-.record-list li .enemy { color: #888; font-size: 11px; }
-.record-list li .meta { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
-.record-list li .time { color: #aaa; font-size: 10px; }
-.record-list li .del { background: none; border: 1px solid #ddd; color: #bbb; padding: 2px 7px; border-radius: 4px; cursor: pointer; font-size: 11px; }
-.record-list li .del:hover { background: #c00; color: #fff; border-color: #c00; }
-
-.clear-all-btn { width: 100%; padding: 9px; background: #fff; color: #c00; border: 2px solid #c00; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: bold; font-family: inherit; margin-top: 10px; }
-.clear-all-btn:hover { background: #c00; color: #fff; }
-
-.legend { display: flex; gap: 14px; padding: 10px 14px; background: #f0f4f8; border-top: 2px solid #dde; font-size: 11px; color: #666; align-items: center; }
-.legend-item { display: flex; align-items: center; gap: 5px; }
-.legend-dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
-.legend-dot.red { background: #e94560; }
-.legend-dot.green { background: #27ae60; }
-.legend-dot.orange { background: #f39c12; }
+/* 右侧：出刀记录 */
+.side-panel { width: 240px; background: #161b22; border-left: 1px solid #30363d; display: flex; flex-direction: column; }
+.side-panel h3 { padding: 12px 14px 8px; font-size: 12px; color: #484f58; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid #21262d; display: flex; justify-content: space-between; align-items: center; }
+.side-panel h3 span { font-size: 11px; color: #e94560; }
+.record-list { flex: 1; overflow-y: auto; padding: 10px 14px; }
+.record-item { background: #0d1117; border-radius: 8px; padding: 8px 10px; margin-bottom: 8px; border-left: 3px solid #238636; }
+.record-item .member { color: #4fc3f7; font-size: 13px; font-weight: bold; }
+.record-item .pos { font-size: 11px; color: #484f58; margin-top: 2px; }
+.empty-msg { color: #484f58; font-size: 12px; text-align: center; padding: 20px 0; line-height: 1.8; }
+.footer { padding: 10px 14px; border-top: 1px solid #21262d; }
+.footer button { width: 100%; padding: 8px; background: #21262d; color: #8b949e; border: 1px solid #30363d; border-radius: 6px; cursor: pointer; font-size: 12px; font-family: inherit; }
+.footer button:hover { background: #30363d; color: #e6edf3; }
 </style>
 </head>
 <body>
 
 <div class="header">
   <h1>军团战排刀台</h1>
-  <span class="subtitle">碧蓝档案 · D / E / F 三区域</span>
   <div class="tabs">
     <button class="tab active" data-area="D">D区</button>
     <button class="tab" data-area="E">E区</button>
     <button class="tab" data-area="F">F区</button>
   </div>
-  <div class="status-badge">已分配 <strong id="assignedCount">0</strong> 人</div>
+  <span class="hint">拖拽成员到地图上</span>
 </div>
 
 <div class="toolbar">
   <label>添加成员：</label>
-  <input type="text" id="newMemberName" placeholder="输入昵称后回车" onkeydown="if(event.key==='Enter')addMember()">
-  <button onclick="addMember()">+ 添加</button>
-  <button class="secondary" onclick="exportData()">导出</button>
-  <button class="secondary" onclick="importData()">导入</button>
-  <span class="hint">点击据点 → 右侧分配出刀</span>
+  <input type="text" id="memberInput" placeholder="输入昵称回车添加" onkeydown="if(event.key==='Enter')addMember()">
+  <button class="btn" onclick="addMember()">+ 添加</button>
+  <div class="sep"></div>
+  <button class="btn btn-gray" onclick="exportData()">导出</button>
+  <button class="btn btn-gray" onclick="importData()">导入</button>
+  <div class="spacer"></div>
+  <span class="tip">拖拽成员到地图放上去 · 点击地图上的人名可删除</span>
 </div>
 
 <div class="main">
-  <div class="map-area">
-    <div class="map-inner" id="mapInner"></div>
-    <div class="legend">
-      <div class="legend-item"><div class="legend-dot red"></div> 待分配</div>
-      <div class="legend-item"><div class="legend-dot green"></div> 已分配</div>
-      <div class="legend-item"><div class="legend-dot orange"></div> 选中</div>
+  <!-- 左侧成员 -->
+  <div class="member-panel">
+    <h3>成员列表 <span id="memberCount"></span></h3>
+    <div class="member-input">
+      <input type="text" id="quickAdd" placeholder="快速添加后回车" onkeydown="if(event.key==='Enter'){addMember();this.value=''}">
+    </div>
+    <div class="member-chips" id="memberChips"></div>
+  </div>
+
+  <!-- 中间地图 -->
+  <div class="map-panel" id="mapPanel">
+    <div class="map-container" id="mapContainer">
+      <div class="no-bg" id="noBg">
+        <p>当前 D 区还没有设置背景图</p>
+        <p>请上传游戏截图作为背景</p>
+        <label class="upload-btn">
+          上传 D 区背景图
+          <input type="file" accept="image/*" class="upload-input" onchange="uploadBg('D', this)">
+        </label>
+      </div>
+      <img id="mapBg" class="bg" style="display:none;">
     </div>
   </div>
 
+  <!-- 右侧记录 -->
   <div class="side-panel">
-    <div class="panel-section">
-      <h3>分配出刀 <span id="areaTitle">D区</span></h3>
-      <div id="assignBox">
-        <div class="no-select-msg">点击地图上的据点<br>开始分配出刀</div>
-      </div>
-    </div>
-
-    <div class="panel-section">
-      <h3>成员列表 <span id="memberCount"></span></h3>
-      <div class="member-list" id="memberList"></div>
-    </div>
-
-    <div class="record-section">
-      <h3>出刀记录（共 <span id="recordCount">0</span> 条）</h3>
-      <ul class="record-list" id="recordList"></ul>
-      <button class="clear-all-btn" onclick="clearAll()">清空所有记录</button>
+    <h3>出刀安排 <span id="placedCount"></span></h3>
+    <div class="record-list" id="recordList"></div>
+    <div class="footer">
+      <button onclick="clearCurrentZone()">清空当前区域</button>
     </div>
   </div>
 </div>
 
 <script>
 // ═══════════════════════════════════════════
-// 据点数据（从截图提取）
-// ═══════════════════════════════════════════
-const ZONE_DATA = {
-  D: {
-    name: 'D区',
-    strongholds: [
-      { pos:'D1',  x:50,  y:14, enemy:'钟会',          enemyChar:'七花' },
-      { pos:'D2',  x:85,  y:72, enemy:'SanSan',       enemyChar:'野良' },
-      { pos:'D3',  x:14,  y:14, enemy:'松饼',          enemyChar:'卡萝' },
-      { pos:'D4',  x:85,  y:14, enemy:'我能一直睡',   enemyChar:'野良' },
-      { pos:'D5',  x:14,  y:72, enemy:'软糯小松饼',   enemyChar:'藏音' },
-      { pos:'D6',  x:16,  y:48, enemy:'邵神韵',       enemyChar:'德菈赛' },
-      { pos:'D7',  x:82,  y:48, enemy:'亚德姆',        enemyChar:'初尘' },
-      { pos:'D8',  x:85,  y:83, enemy:'星星点点',      enemyChar:'帕斯卡' },
-      { pos:'D9',  x:50,  y:82, enemy:'李狗蛋',        enemyChar:'卡萝' },
-      { pos:'D10', x:50,  y:76, enemy:'零一',          enemyChar:'可露凯' },
-    ]
-  },
-  E: {
-    name: 'E区',
-    strongholds: [
-      { pos:'E1',  x:50,  y:14, enemy:'小天鹅',       enemyChar:'五河琴里' },
-      { pos:'E2',  x:14,  y:72, enemy:'天愿祈',       enemyChar:'四糸乃' },
-      { pos:'E3',  x:85,  y:14, enemy:'bPM2N',         enemyChar:'白之女王' },
-      { pos:'E4',  x:14,  y:14, enemy:'yuge',          enemyChar:'诱宵美九' },
-      { pos:'E5',  x:85,  y:72, enemy:'大虾666',      enemyChar:'夜刀神十香' },
-      { pos:'E6',  x:82,  y:48, enemy:'要塞',         enemyChar:'五河琴里' },
-      { pos:'E7',  x:16,  y:48, enemy:'乙烯一克',      enemyChar:'五河琴里' },
-      { pos:'E8',  x:85,  y:83, enemy:'时崎未来',     enemyChar:'时崎狂三' },
-      { pos:'E9',  x:50,  y:82, enemy:'jiyun',        enemyChar:'鸢一折纸' },
-      { pos:'E10', x:50,  y:76, enemy:'zzt',           enemyChar:'七罪' },
-    ]
-  },
-  F: {
-    name: 'F区',
-    strongholds: [
-      { pos:'F1',  x:50,  y:14, enemy:'月卡党松饼',   enemyChar:'佩可莉姆(夏日)' },
-      { pos:'F2',  x:14,  y:72, enemy:'blood',         enemyChar:'莉玛' },
-      { pos:'F3',  x:85,  y:14, enemy:'女皇',          enemyChar:'凯露(新年)' },
-      { pos:'F4',  x:14,  y:14, enemy:'铃96级超级斗罗',enemyChar:'真步' },
-      { pos:'F5',  x:85,  y:72, enemy:'啊米诺斯',      enemyChar:'佩可莉姆(公主)' },
-      { pos:'F6',  x:82,  y:48, enemy:'—',             enemyChar:'—' },
-      { pos:'F7',  x:16,  y:48, enemy:'未央小小号',    enemyChar:'镜华(万圣节)' },
-      { pos:'F8',  x:85,  y:83, enemy:'白銀姫ラビリス',enemyChar:'伊莉亚(圣诞节)' },
-      { pos:'F9',  x:50,  y:82, enemy:'枫97级超级斗罗',enemyChar:'霞(魔法少女)' },
-      { pos:'F10', x:50,  y:76, enemy:'摸摸鱼',        enemyChar:'凯露' },
-    ]
-  }
-};
-
-// ═══════════════════════════════════════════
-// 状态
+// 数据
 // ═══════════════════════════════════════════
 let currentArea = 'D';
-let selectedStronghold = null;
 let members = [];
-let records = []; // {stronghold, member, enemy, enemyChar, time}
+let placements = { D: {}, E: {}, F: {} };
+let bgImages = { D: null, E: null, F: null };
 
 // ═══════════════════════════════════════════
 // 初始化
 // ═══════════════════════════════════════════
 function init() {
   try {
-    const raw = localStorage.getItem('ba_legion_v3');
+    const raw = localStorage.getItem('ba_legion_v5');
     if (raw) {
       const d = JSON.parse(raw);
       members = d.members || [];
-      records = d.records || [];
+      placements = d.placements || { D: {}, E: {}, F: {} };
+      bgImages = d.bgImages || { D: null, E: null, F: null };
     }
-  } catch(e) {
-    members = [];
-    records = [];
-  }
+  } catch(e) {}
 }
+init();
 
 function save() {
   try {
-    localStorage.setItem('ba_legion_v3', JSON.stringify({ members, records }));
-  } catch(e) {}
+    localStorage.setItem('ba_legion_v5', JSON.stringify({ members, placements, bgImages }));
+  } catch(e) {
+    if (e.name === 'QuotaExceededError') {
+      alert('存储空间已满，请导出数据后清除部分背景图');
+    }
+  }
 }
 
 // ═══════════════════════════════════════════
 // 渲染
 // ═══════════════════════════════════════════
-function getAssignment(pos) {
-  return records.find(r => r.stronghold === pos);
+function render() {
+  renderChips();
+  renderMap();
+  renderRecords();
+}
+
+function renderChips() {
+  const container = document.getElementById('memberChips');
+  document.getElementById('memberCount').textContent = members.length > 0 ? `(${members.length}人)` : '';
+  container.innerHTML = '';
+  members.forEach(function(name) {
+    const chip = document.createElement('div');
+    chip.className = 'chip';
+    chip.draggable = true;
+    chip.dataset.name = name;
+    chip.innerHTML = '<span>' + escapeHtml(name) + '</span><button class="x" onclick="event.stopPropagation();removeMember(\'' + escapeHtml(name).replace(/'/g, "\\'") + '\')">×</button>';
+
+    chip.addEventListener('dragstart', function(e) {
+      chip.classList.add('dragging');
+      e.dataTransfer.setData('text/plain', name);
+      e.dataTransfer.effectAllowed = 'copy';
+    });
+    chip.addEventListener('dragend', function() {
+      chip.classList.remove('dragging');
+    });
+
+    container.appendChild(chip);
+  });
 }
 
 function renderMap() {
-  const container = document.getElementById('mapInner');
-  container.innerHTML = '';
+  const bg = document.getElementById('mapBg');
+  const noBg = document.getElementById('noBg');
 
-  const zone = ZONE_DATA[currentArea];
-
-  // 背景
-  const bg = document.createElement('div');
-  bg.style.cssText = 'position:absolute;inset:0;background:linear-gradient(180deg,#c8d8e8 0%,#e8eef4 40%,#d0dce8 100%);';
-  container.appendChild(bg);
-
-  // 装饰建筑
-  const buildings = [
-    {l:48,t:30,w:60,h:160,op:0.12},
-    {l:10,t:50,w:35,h:80,op:0.10},
-    {l:78,t:45,w:30,h:70,op:0.10},
-    {l:25,t:60,w:25,h:50,op:0.08},
-    {l:68,t:58,w:28,h:48,op:0.08},
-  ];
-  buildings.forEach(b => {
-    const div = document.createElement('div');
-    div.style.cssText = `position:absolute;left:${b.l}%;top:${b.t}%;width:${b.w}px;height:${b.h}px;background:#8ba8bc;opacity:${b.op};border-radius:4px;`;
-    container.appendChild(div);
-  });
-
-  // 据点
-  zone.strongholds.forEach(sh => {
-    const assignment = getAssignment(sh.pos);
-    const isSelected = selectedStronghold === sh.pos;
-
-    const div = document.createElement('div');
-    div.className = 'hotspot' + (assignment ? ' assigned' : '') + (isSelected ? ' selected' : '');
-    div.style.cssText = `left:${sh.x}%;top:${sh.y}%;`;
-
-    div.innerHTML = `
-      <div class="circle">${sh.pos}</div>
-      <div class="enemy-tag">${sh.enemy}</div>
-      <div class="my-tag">${assignment ? assignment.member : ''}</div>
-    `;
-
-    div.addEventListener('click', function() {
-      selectStronghold(sh.pos);
-    });
-
-    container.appendChild(div);
-  });
-
-  document.getElementById('assignedCount').textContent = records.length;
-  document.getElementById('areaTitle').textContent = zone.name;
-}
-
-function selectStronghold(pos) {
-  selectedStronghold = (selectedStronghold === pos) ? null : pos;
-  renderMap();
-  renderAssignBox();
-  renderRecords();
-}
-
-function renderAssignBox() {
-  const box = document.getElementById('assignBox');
-  if (!selectedStronghold) {
-    box.innerHTML = '<div class="no-select-msg">点击地图上的据点<br>开始分配出刀</div>';
-    return;
+  if (bgImages[currentArea]) {
+    bg.src = bgImages[currentArea];
+    bg.style.display = 'block';
+    noBg.style.display = 'none';
+  } else {
+    bg.style.display = 'none';
+    noBg.style.display = 'block';
   }
 
-  const zone = ZONE_DATA[currentArea];
-  const sh = zone.strongholds.find(s => s.pos === selectedStronghold);
-  const assignment = getAssignment(selectedStronghold);
+  // Remove old placed elements
+  document.querySelectorAll('.placed').forEach(function(el) { el.remove(); });
 
-  const options = members.length > 0
-    ? members.map(m => `<option value="${m}">${m}</option>`).join('')
-    : `<option value="">请先添加成员</option>`;
-
-  box.innerHTML = `
-    <div class="assign-card">
-      <div class="pos-badge">${sh.pos}</div>
-      <div class="enemy-info">敌方: <strong>${sh.enemy}</strong> (${sh.enemyChar})</div>
-      <select id="memberSel">${options ? `<option value="">— 选择成员 —</option>` + options : `<option value="">— 暂无成员 —</option>`}</select>
-      <button class="btn-assign" onclick="doAssign()">${assignment ? '更新分配' : '确认分配'}</button>
-      ${assignment ? `<button class="btn-cancel" onclick="cancelAssign()">取消此据点</button>` : ''}
-    </div>
-  `;
+  // Place members
+  var zonePlacements = placements[currentArea] || {};
+  Object.entries(zonePlacements).forEach(function(entry) {
+    var name = entry[0];
+    var pos = entry[1];
+    createPlacedEl(name, pos.x, pos.y);
+  });
 }
 
-function doAssign() {
-  const sel = document.getElementById('memberSel');
-  if (!sel || !sel.value) { alert('请选择成员'); return; }
+function createPlacedEl(name, x, y, doSave) {
+  if (doSave === undefined) doSave = true;
+  var container = document.getElementById('mapContainer');
+  var el = document.createElement('div');
+  el.className = 'placed';
+  el.style.left = x + '%';
+  el.style.top = y + '%';
+  el.dataset.name = name;
+  el.textContent = name;
 
-  records = records.filter(r => r.stronghold !== selectedStronghold);
-  const sh = ZONE_DATA[currentArea].strongholds.find(s => s.pos === selectedStronghold);
-  records.push({
-    stronghold: selectedStronghold,
-    member: sel.value,
-    enemy: sh.enemy,
-    enemyChar: sh.enemyChar,
-    time: new Date().toLocaleTimeString('zh-CN', {hour:'2-digit', minute:'2-digit'})
+  var delBtn = document.createElement('button');
+  delBtn.className = 'del';
+  delBtn.textContent = '×';
+  delBtn.onclick = function(e) {
+    e.stopPropagation();
+    removePlacement(name);
+  };
+  el.appendChild(delBtn);
+
+  el.draggable = true;
+  el.addEventListener('dragstart', function(e) {
+    el.style.opacity = '0.5';
+    e.dataTransfer.setData('text/plain', name);
+    e.dataTransfer.effectAllowed = 'move';
+  });
+  el.addEventListener('dragend', function() {
+    el.style.opacity = '1';
   });
 
-  save();
-  selectedStronghold = null;
-  renderMap();
-  renderAssignBox();
-  renderRecords();
-  renderMembers();
-}
+  container.appendChild(el);
 
-function cancelAssign() {
-  records = records.filter(r => r.stronghold !== selectedStronghold);
-  save();
-  selectedStronghold = null;
-  renderMap();
-  renderAssignBox();
-  renderRecords();
+  if (doSave) {
+    if (!placements[currentArea]) placements[currentArea] = {};
+    placements[currentArea][name] = { x: x, y: y };
+    save();
+    renderRecords();
+  }
 }
 
 function renderRecords() {
-  const list = document.getElementById('recordList');
-  const zone = ZONE_DATA[currentArea];
-  const zoneRecords = records.filter(r => r.stronghold.startsWith(currentArea[0]));
+  var list = document.getElementById('recordList');
+  var zonePlacements = placements[currentArea] || {};
+  var keys = Object.keys(zonePlacements);
+  document.getElementById('placedCount').textContent = keys.length > 0 ? `(${keys.length}人)` : '';
 
-  document.getElementById('recordCount').textContent = zoneRecords.length;
+  if (keys.length === 0) {
+    list.innerHTML = '<div class="empty-msg">还没有人<br>拖拽成员到地图上开始</div>';
+    return;
+  }
+
   list.innerHTML = '';
-
-  [...zoneRecords].reverse().forEach((r, i) => {
-    const li = document.createElement('li');
-    li.innerHTML = `
-      <div class="info">
-        <div class="member">${r.member}</div>
-        <div class="target">→ ${r.stronghold}</div>
-        <div class="enemy">vs ${r.enemy}</div>
-      </div>
-      <div class="meta">
-        <span class="time">${r.time}</span>
-        <button class="del" onclick="delRecord('${r.stronghold}')">×</button>
-      </div>
-    `;
-    list.appendChild(li);
+  keys.forEach(function(name) {
+    var pos = zonePlacements[name];
+    var item = document.createElement('div');
+    item.className = 'record-item';
+    item.innerHTML = '<div class="member">' + escapeHtml(name) + '</div><div class="pos">位置: ' + Math.round(pos.x) + '% , ' + Math.round(pos.y) + '%</div>';
+    list.appendChild(item);
   });
 }
 
-function delRecord(stronghold) {
-  records = records.filter(r => !(r.stronghold === stronghold && r === records.find(rec => rec.stronghold === stronghold)));
-  // 重新查找并删除
-  const idx = records.findIndex(r => r.stronghold === stronghold);
-  if (idx >= 0) records.splice(idx, 1);
-  save();
-  renderMap();
-  renderAssignBox();
-  renderRecords();
-}
-
-function clearAll() {
-  if (!confirm('确定清空当前区域所有记录？')) return;
-  const prefix = currentArea[0];
-  records = records.filter(r => !r.stronghold.startsWith(prefix));
-  save();
-  renderMap();
-  renderAssignBox();
-  renderRecords();
-}
-
+// ═══════════════════════════════════════════
+// 成员管理
+// ═══════════════════════════════════════════
 function addMember() {
-  const name = document.getElementById('newMemberName').value.trim();
+  var input = document.getElementById('memberInput');
+  var name = input.value.trim();
   if (!name) return;
-  if (!members.includes(name)) {
+  if (members.indexOf(name) < 0) {
     members.push(name);
     save();
-    renderMembers();
+    renderChips();
   }
-  document.getElementById('newMemberName').value = '';
-}
-
-function renderMembers() {
-  const list = document.getElementById('memberList');
-  document.getElementById('memberCount').textContent = `(${members.length}人)`;
-  list.innerHTML = members.map(m => `
-    <div class="member-chip">
-      ${m}
-      <button class="del-m" onclick="removeMember('${m}')">×</button>
-    </div>
-  `).join('');
+  input.value = '';
 }
 
 function removeMember(name) {
-  members = members.filter(m => m !== name);
-  records = records.filter(r => r.member !== name);
+  members = members.filter(function(m) { return m !== name; });
+  ['D','E','F'].forEach(function(z) {
+    if (placements[z]) delete placements[z][name];
+  });
   save();
-  renderMembers();
+  render();
+}
+
+// ═══════════════════════════════════════════
+// 拖拽放置
+// ═══════════════════════════════════════════
+var mapPanel = document.getElementById('mapPanel');
+var mapContainer = document.getElementById('mapContainer');
+
+mapPanel.addEventListener('dragover', function(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'copy';
+});
+
+mapPanel.addEventListener('drop', function(e) {
+  e.preventDefault();
+  var name = e.dataTransfer.getData('text/plain');
+  if (!name || members.indexOf(name) < 0) return;
+
+  var rect = mapContainer.getBoundingClientRect();
+  var x = ((e.clientX - rect.left) / rect.width) * 100;
+  var y = ((e.clientY - rect.top) / rect.height) * 100;
+
+  x = Math.max(3, Math.min(97, x));
+  y = Math.max(3, Math.min(97, y));
+
+  createPlacedEl(name, x, y, true);
+});
+
+function removePlacement(name) {
+  if (placements[currentArea]) delete placements[currentArea][name];
+  save();
   renderMap();
   renderRecords();
 }
 
-function exportData() {
-  const blob = new Blob([JSON.stringify({ members, records }, null, 2)], {type:'application/json'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'legion_data.json';
-  a.click();
+function clearCurrentZone() {
+  if (!confirm('确定清空 ' + currentArea + ' 区所有出刀安排？')) return;
+  placements[currentArea] = {};
+  save();
+  render();
 }
 
-function importData() {
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = '.json';
-  input.onchange = function(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = function(ev) {
-      try {
-        const d = JSON.parse(ev.target.result);
-        members = d.members || [];
-        records = d.records || [];
-        save();
-        renderMembers();
-        renderMap();
-        renderAssignBox();
-        renderRecords();
-      } catch(err) {
-        alert('导入失败');
-      }
-    };
-    reader.readAsText(file);
+// ═══════════════════════════════════════════
+// 背景上传
+// ═══════════════════════════════════════════
+function uploadBg(zone, input) {
+  var file = input.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    bgImages[zone] = e.target.result;
+    save();
+    renderMap();
   };
-  input.click();
+  reader.readAsDataURL(file);
+  input.value = '';
 }
 
 // ═══════════════════════════════════════════
@@ -522,21 +377,58 @@ document.querySelectorAll('.tab').forEach(function(btn) {
     document.querySelectorAll('.tab').forEach(function(b) { b.classList.remove('active'); });
     btn.classList.add('active');
     currentArea = btn.getAttribute('data-area');
-    selectedStronghold = null;
-    renderMap();
-    renderAssignBox();
-    renderRecords();
+    render();
   });
 });
 
 // ═══════════════════════════════════════════
+// 导入导出
+// ═══════════════════════════════════════════
+function exportData() {
+  try {
+    var blob = new Blob([JSON.stringify({ members: members, placements: placements }, null, 2)], {type:'application/json'});
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'legion_arrange.json';
+    a.click();
+  } catch(e) { alert('导出失败'); }
+}
+
+function importData() {
+  var input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.onchange = function(e) {
+    var file = e.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(ev) {
+      try {
+        var d = JSON.parse(ev.target.result);
+        members = d.members || [];
+        placements = d.placements || { D: {}, E: {}, F: {} };
+        save();
+        render();
+      } catch(err) { alert('导入失败: 文件格式错误'); }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+// ═══════════════════════════════════════════
+// 工具
+// ═══════════════════════════════════════════
+function escapeHtml(str) {
+  var div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+// ═══════════════════════════════════════════
 // 启动
 // ═══════════════════════════════════════════
-init();
-renderMap();
-renderAssignBox();
-renderRecords();
-renderMembers();
+render();
 </script>
 </body>
 </html>
