@@ -215,6 +215,11 @@ let placements = { D: {}, E: {}, F: {} };
 let bgImages = { D: null, E: null, F: null };
 let db = null;
 let supabaseSyncing = false; // 防止 realtime 回写触发死循环
+// 拖拽状态：记录当前拖拽的源成员/刀序号，和最后记录的鼠标坐标
+let _dragSrcName = null;
+let _dragSrcIdx = null;
+let _lastDragX = null;
+let _lastDragY = null;
 
 // ═══════════════════════════════════════════
 // 操作锁
@@ -807,19 +812,45 @@ function createPlacedEl(name, x, y, doSave, knifeIndex) {
     e.dataTransfer.setData('application/ba-source', 'placed');
     e.dataTransfer.setData('application/ba-knife', knifeIndex);
     e.dataTransfer.effectAllowed = 'move';
+    // 记录当前拖拽的源元素和信息
+    _dragSrcName = name;
+    _dragSrcIdx = knifeIndex;
+    _lastDragX = x;
+    _lastDragY = y;
   });
-  el.addEventListener('dragend', function() {
+  el.addEventListener('dragend', function(e) {
     el.style.opacity = '1';
+    // 拖拽结束时，用 dragover 期间记录的坐标更新位置
+    if (_dragSrcName === name && _dragSrcIdx === knifeIndex) {
+      var rect = mapContainer.getBoundingClientRect();
+      var nx = _lastDragX;
+      var ny = _lastDragY;
+      if (nx !== null && ny !== null) {
+        var nxPct = ((nx - rect.left) / rect.width) * 100;
+        var nyPct = ((ny - rect.top) / rect.height) * 100;
+        nxPct = Math.max(3, Math.min(97, nxPct));
+        nyPct = Math.max(3, Math.min(97, nyPct));
+        var zone = placements[currentArea];
+        if (zone && zone[name] && zone[name][knifeIndex] &&
+            (Math.abs(zone[name][knifeIndex].x - nxPct) > 0.5 || Math.abs(zone[name][knifeIndex].y - nyPct) > 0.5)) {
+          zone[name][knifeIndex] = { x: nxPct, y: nyPct };
+          save();
+          renderMap();
+          renderRecords();
+        }
+      }
+      _dragSrcName = null;
+      _dragSrcIdx = null;
+      _lastDragX = null;
+      _lastDragY = null;
+    }
   });
-  // placed 元素的 dragover：允许事件冒泡到 mapPanel，drop 同理
+  // dragover 时持续记录鼠标在 mapContainer 内的坐标
   el.addEventListener('dragover', function(e) {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
-  });
-  // 不在这里拦截 drop，让事件冒泡到 mapPanel 统一处理
-  el.addEventListener('drop', function(e) {
-    e.preventDefault();
-    // 拖拽放置的逻辑全部由 mapPanel drop 处理器接管
+    _lastDragX = e.clientX;
+    _lastDragY = e.clientY;
   });
 
   container.appendChild(el);
@@ -905,6 +936,8 @@ mapPanel.addEventListener('dragover', function(e) {
   e.preventDefault();
   var src = e.dataTransfer.getData('application/ba-source');
   e.dataTransfer.dropEffect = src === 'placed' ? 'move' : 'copy';
+  _lastDragX = e.clientX;
+  _lastDragY = e.clientY;
 });
 mapPanel.addEventListener('drop', function(e) {
   e.preventDefault();
