@@ -1292,6 +1292,7 @@ function renderCompleted() {
 var renderRecords = renderCompleted;
 
 function clearBg() {
+  if (!isLockHolder) { alert('请先获取操作权限'); return; }
   if (!bgImages[currentArea]) {
     alert('当前区域没有背景图');
     return;
@@ -1425,6 +1426,7 @@ function clearCurrentZone() {
 // 背景上传
 // ═══════════════════════════════════════════
 function uploadBg(zone, input) {
+  if (!isLockHolder) { alert('请先获取操作权限'); return; }
   var file = input.files[0];
   if (!file) return;
   var reader = new FileReader();
