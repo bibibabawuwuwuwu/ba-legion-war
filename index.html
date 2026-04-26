@@ -869,6 +869,7 @@ function render() {
 // 右键快捷菜单
 // ═══════════════════════════════════════════
 var ctxTargetName = '';
+var lastSpendTime = 0; // 防连击
 function showCtxMenu(e, name) {
   e.preventDefault();
   ctxTargetName = name;
@@ -891,23 +892,19 @@ function ctxAction(count) {
   document.getElementById('ctxMenu').style.display = 'none';
 }
 
-// 快捷消耗刀数（双击或右键菜单）
+// 快捷消耗刀数（双击或右键菜单），仅标记，不上地图
 function spendKnivesQuick(name, count) {
   if (!isLockHolder) { alert('请先获取操作权限'); return; }
+  var now = Date.now();
+  if (now - lastSpendTime < 300) return; // 300ms 防连击
+  lastSpendTime = now;
   var left = knivesLeft[name] || 0;
   if (left <= 0) { alert('该成员已无刀可排'); return; }
   var toSpend = Math.min(count, left);
-  for (var i = 0; i < toSpend; i++) {
-    knivesLeft[name]--;
-    var zone = placements[currentArea] || {};
-    if (!zone[name]) zone[name] = [];
-    zone[name].push({ x: 50 + Math.random() * 10 - 5, y: 50 + Math.random() * 10 - 5 });
-    placements[currentArea] = zone;
-  }
+  knivesLeft[name] = left - toSpend;
   save();
   renderChips();
   renderCompleted();
-  renderMap();
 }
 
 function renderChips() {
@@ -956,21 +953,14 @@ function renderChips() {
           cell.addEventListener('click', function(e) {
             e.stopPropagation();
             if (!isLockHolder) { alert('请先获取操作权限'); return; }
-            // 点击绿色格：直接将 knivesLeft 减少到该格对应的数量
-            var newLeft = Math.max(0, left - 1);
-            knivesLeft[name] = newLeft;
+            var now = Date.now();
+            if (now - lastSpendTime < 300) return;
+            lastSpendTime = now;
+            // 点击绿色格：仅标记已用，不上地图
+            knivesLeft[name] = Math.max(0, left - 1);
             save();
             renderChips();
             renderCompleted();
-            // 如果还有剩余刀（被点击的那个不是最后一把），在当前区加一条记录
-            if (newLeft >= 0) {
-              var zone = placements[currentArea] || {};
-              if (!zone[name]) zone[name] = [];
-              zone[name].push({ x: 50 + Math.random() * 10 - 5, y: 50 + Math.random() * 10 - 5 });
-              placements[currentArea] = zone;
-              save();
-              renderMap();
-            }
           });
         })(i, left, name);
       } else {
