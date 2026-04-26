@@ -819,7 +819,7 @@ function renderChips() {
   var totalKnives = members.length * 3;
   var remainingKnives = 0;
   members.forEach(function(name) { remainingKnives += (knivesLeft[name] || 0); });
-  document.getElementById('memberCount').textContent = totalKnives > 0 ? '(' + remainingKnives + '-' + totalKnives + ')' : '';
+  document.getElementById('memberCount').textContent = totalKnives > 0 ? '(' + remainingKnives + '/' + totalKnives + ')' : '';
   container.innerHTML = '';
 
   active.forEach(function(name) {
@@ -869,15 +869,6 @@ function renderChips() {
       knivesDiv.appendChild(cell);
     }
     chip.appendChild(knivesDiv);
-
-    var xBtn = document.createElement('button');
-    xBtn.className = 'x';
-    xBtn.textContent = '×';
-    xBtn.onclick = function(e) {
-      e.stopPropagation();
-      removeMember(name);
-    };
-    chip.appendChild(xBtn);
 
     chip.addEventListener('dragstart', function(e) {
       chip.classList.add('dragging');
@@ -1014,7 +1005,7 @@ function renderCompleted() {
   var remainingKnives = 0;
   members.forEach(function(name) { remainingKnives += (knivesLeft[name] || 0); });
   var completedKnives = totalKnives - remainingKnives;
-  document.getElementById('placedCount').textContent = totalKnives > 0 ? '(' + completedKnives + '-' + totalKnives + ')' : '';
+  document.getElementById('placedCount').textContent = totalKnives > 0 ? '(' + completedKnives + '/' + totalKnives + ')' : '';
 
   if (done.length === 0) {
     list.innerHTML = '<div class="empty-msg">暂无已完成成员<br>左侧安排出刀后自动移入</div>';
