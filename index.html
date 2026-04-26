@@ -532,8 +532,8 @@ async function initSupabase() {
           var supabaseBg = resp.data.data.bgImages;
           var changed = false;
           ['D','E','F'].forEach(function(z) {
-            // 本地已有值（IndexedDB，非 null）则不覆盖；其他设备清背景时远程是 null，本地有值也不会被覆盖
-            if (supabaseBg[z] !== undefined && (bgImages[z] === null || bgImages[z] === undefined)) {
+            // 始终信任 Supabase 数据（哪怕是 null），因为是跨设备共享的源
+            if (supabaseBg[z] !== undefined && bgImages[z] !== supabaseBg[z]) {
               bgImages[z] = supabaseBg[z];
               changed = true;
             }
@@ -748,18 +748,15 @@ function save() {
     return;
   }
   supabaseSyncing = true;
-  console.log('[DEBUG save] upserting bgImages:', JSON.stringify(bgImages));
   supabase.from('placements').upsert({
     id: DB_ID,
     zone: 'shared',
     data: { members: members, placements: placements, knivesLeft: knivesLeft, bgImages: bgImages }
   }).then(function() {
     supabaseSyncing = false;
-    console.log('[DEBUG save] upsert SUCCESS, bgImages now:', JSON.stringify(bgImages));
   }).catch(function(e) {
     supabaseSyncing = false;
     console.warn('Supabase 保存失败', e);
-    alert('Supabase 保存失败: ' + (e.message || e.code || '未知错误'));
   });
 }
 
@@ -1325,7 +1322,6 @@ function renderCompleted() {
 var renderRecords = renderCompleted;
 
 function clearBg() {
-  console.log('[DEBUG clearBg] currentArea:', currentArea, 'isLockHolder:', isLockHolder, 'bgImages:', bgImages, 'supabaseSyncing:', supabaseSyncing);
   if (!isLockHolder) { alert('请先获取操作权限'); return; }
   if (!bgImages[currentArea]) {
     alert('当前区域没有背景图');
@@ -1335,7 +1331,6 @@ function clearBg() {
   bgImages[currentArea] = null;
   // 等待 IndexedDB 写完（同步更新了 _idbCache）再渲染
   idbPut('bgImages', bgImages).then(function() {
-    console.log('[DEBUG clearBg] IndexedDB written, calling save()');
     save();
     renderMap();
   });
