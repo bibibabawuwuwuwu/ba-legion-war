@@ -381,13 +381,20 @@ function openDB() {
   });
 }
 
+// IndexedDB 同步内存缓存（renderMap 同步读取用）
+var _idbCache = {};
+
 function idbGet(key) {
   return new Promise(function(resolve, reject) {
     if (!db) { resolve(null); return; }
     var tx = db.transaction(STORE_NAME, 'readonly');
     var store = tx.objectStore(STORE_NAME);
     var r = store.get(key);
-    r.onsuccess = function() { resolve(r.result || null); };
+    r.onsuccess = function() {
+      var val = r.result || null;
+      _idbCache[key] = val; // 同步写入缓存
+      resolve(val);
+    };
     r.onerror = function() { reject(r.error); };
   });
 }
@@ -1114,6 +1121,15 @@ function renderMap() {
 
   if (noBgText1) noBgText1.textContent = '当前 ' + currentArea + ' 区还没有设置背景图';
   if (uploadLabel) uploadLabel.childNodes[0].textContent = '上传 ' + currentArea + ' 区背景图 ';
+
+  // 兜底：从 IndexedDB 再读一次 bgImages，防止 init 顺序导致全局变量为空
+  (function _restoreBg() {
+    if (!_idbCache || !_idbCache['bgImages']) return;
+    var cached = _idbCache['bgImages'];
+    if (cached && cached[currentArea] && !bgImages[currentArea]) {
+      bgImages[currentArea] = cached[currentArea];
+    }
+  })();
 
   if (bgImages[currentArea]) {
     document.getElementById('mapBg').src = bgImages[currentArea];
