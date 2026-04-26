@@ -99,19 +99,72 @@ body { font-family: 'Microsoft YaHei', sans-serif; background: #0d1117; color: #
 .lock-modal input:focus { outline: none; border-color: #e94560; }
 .lock-modal .modal-btns { display: flex; gap: 10px; justify-content: center; }
 .lock-modal .btn-ok { background: #238636; border: none; color: #fff; padding: 8px 24px; border-radius: 6px; cursor: pointer; font-size: 14px; font-family: inherit; font-weight: bold; }
-.lock-modal .btn-ok:hover { background: #2ea043; }
-.lock-modal .btn-cancel { background: #21262d; color: #8b949e; border: 1px solid #30363d; padding: 8px 24px; border-radius: 6px; cursor: pointer; font-size: 14px; font-family: inherit; }
-.lock-modal .btn-cancel:hover { background: #30363d; color: #e6edf3; }
-.lock-modal .error-msg { color: #f85149; font-size: 12px; margin-top: 8px; min-height: 18px; }
+/* 成员 chip */
+.chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #1f2937;
+  border: 1px solid #374151;
+  border-radius: 20px;
+  padding: 6px 10px;
+  cursor: grab;
+  user-select: none;
+  font-size: 13px;
+  min-width: 0;
+}
+.chip:hover { background: #273549; border-color: #4fc3f7; }
+.chip.dragging { opacity: 0.5; }
+.chip .x {
+  background: none; border: none; color: #6b7280; cursor: pointer;
+  font-size: 14px; line-height: 1; padding: 0 2px; flex-shrink: 0;
+}
+.chip .x:hover { color: #f85149; }
+
+/* chip 右侧3格进度指示 */
+.chip-knives {
+  display: flex;
+  gap: 3px;
+  flex-shrink: 0;
+}
+.chip-knives span {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  background: #238636;
+  border: 1px solid #2ea043;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.chip-knives span.used {
+  background: #161b22;
+  border-color: #30363d;
+}
+.chip-knives span:hover:not(.used) { background: #2ea043; }
 
 /* 成员 chip 非锁 holder 禁用态 */
 .member-chips.readonly .chip { cursor: not-allowed; opacity: 0.6; pointer-events: none; }
 .member-chips.readonly .chip .x { display: none; }
+.member-chips.readonly .chip-knives span { cursor: not-allowed; pointer-events: none; }
 
 /* 地图放置元素非锁 holder 禁用 */
 .map-container.readonly .placed { cursor: not-allowed; }
 .map-container.readonly .placed .del { display: none !important; }
-</style>
+
+/* 右侧：已完成出刀 */
+.side-panel { width: 240px; background: #161b22; border-left: 1px solid #30363d; display: flex; flex-direction: column; }
+.side-panel h3 { padding: 12px 14px 8px; font-size: 12px; color: #484f58; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid #21262d; display: flex; justify-content: space-between; align-items: center; }
+.side-panel h3 span { font-size: 11px; color: #e94560; }
+.record-list { flex: 1; overflow-y: auto; padding: 10px 14px; }
+.record-item { background: #0d1117; border-radius: 8px; padding: 8px 10px; margin-bottom: 8px; border-left: 3px solid #238636; }
+.record-item .member { color: #4fc3f7; font-size: 13px; font-weight: bold; margin-bottom: 4px; }
+.record-item .bar { height: 4px; background: #21262d; border-radius: 2px; margin-top: 4px; overflow: hidden; }
+.record-item .bar-fill { height: 100%; background: #238636; border-radius: 2px; transition: width 0.3s; }
+.record-item .bar-label { font-size: 10px; color: #484f58; margin-top: 2px; }
+.empty-msg { color: #484f58; font-size: 12px; text-align: center; padding: 20px 0; line-height: 1.8; }
+.footer { padding: 10px 14px; border-top: 1px solid #21262d; }
+.footer button { width: 100%; padding: 8px; background: #21262d; color: #8b949e; border: 1px solid #30363d; border-radius: 6px; cursor: pointer; font-size: 12px; font-family: inherit; }
+.footer button:hover { background: #30363d; color: #e6edf3; }
 </head>
 <body>
 
@@ -122,7 +175,7 @@ body { font-family: 'Microsoft YaHei', sans-serif; background: #0d1117; color: #
     <button class="tab" data-area="E">E区</button>
     <button class="tab" data-area="F">F区</button>
   </div>
-  <span class="hint">拖拽成员到地图上</span>
+  <span class="hint">点击右侧色块标记已出刀 · 拖拽到地图安排刀位</span>
 </div>
 
 <!-- 操作锁 Banner -->
@@ -157,13 +210,13 @@ body { font-family: 'Microsoft YaHei', sans-serif; background: #0d1117; color: #
   <div class="sep"></div>
   <button class="btn btn-gray" onclick="clearBg()">清除当前区背景</button>
   <div class="spacer"></div>
-  <span class="tip">拖拽成员到地图放上去 · 点击地图上的人名可删除</span>
+  <span class="tip">拖拽成员到地图放上去 · 点击地图上的人名可删除 · 点击chip右侧色块标记已出刀</span>
 </div>
 
 <div class="main">
   <!-- 左侧成员 -->
   <div class="member-panel">
-    <h3>成员列表 <span id="memberCount"></span></h3>
+    <h3>待安排出刀 <span id="memberCount"></span></h3>
     <div class="member-input">
       <input type="text" id="quickAdd" placeholder="快速添加后回车" onkeydown="if(event.key==='Enter'){addMember();this.value=''}">
     </div>
@@ -187,7 +240,7 @@ body { font-family: 'Microsoft YaHei', sans-serif; background: #0d1117; color: #
 
   <!-- 右侧记录 -->
   <div class="side-panel">
-    <h3>出刀安排 <span id="placedCount"></span></h3>
+    <h3>已完成出刀 <span id="placedCount"></span></h3>
     <div class="record-list" id="recordList"></div>
     <div class="footer">
       <button onclick="clearCurrentZone()">清空当前区域</button>
@@ -212,6 +265,8 @@ let currentArea = 'D';
 let members = [];
 // 成员出刀记录：{ D: { "张三": [{x,y}, {x,y}], "李四": [{x,y}] } }
 let placements = { D: {}, E: {}, F: {} };
+// 成员剩余未安排刀数：{ "张三": 2 }，为0时该成员从左侧消失，进入右侧已完成
+let knivesLeft = {};
 let bgImages = { D: null, E: null, F: null };
 let db = null;
 let supabaseSyncing = false; // 防止 realtime 回写触发死循环
@@ -332,6 +387,16 @@ async function initSupabase() {
           placements = d.placements;
         }
         if (d.bgImages) bgImages = d.bgImages;
+        if (d.knivesLeft) {
+          knivesLeft = d.knivesLeft;
+        } else {
+          // 兼容旧数据：根据已完成刀数计算剩余刀数
+          members.forEach(function(name) {
+            var done = 0;
+            ['D','E','F'].forEach(function(z) { done += (placements[z] && placements[z][name] ? placements[z][name].length : 0); });
+            knivesLeft[name] = Math.max(0, 3 - done);
+          });
+        }
       }
     } catch(e) {}
     return;
@@ -434,10 +499,20 @@ async function initSupabase() {
           bgImages = resp.data.data.bgImages;
           idbPut('bgImages', bgImages);
         }
+        if (resp.data.data.knivesLeft) {
+          knivesLeft = resp.data.data.knivesLeft;
+        } else {
+          // 兼容旧数据：根据已完成刀数计算剩余刀数
+          (resp.data.data.members || []).forEach(function(name) {
+            var done = 0;
+            ['D','E','F'].forEach(function(z) { done += (placements[z] && placements[z][name] ? placements[z][name].length : 0); });
+            knivesLeft[name] = Math.max(0, 3 - done);
+          });
+        }
       }
     } else {
       // 首次：插入一条空记录
-      await supabase.from('placements').insert([{ id: DB_ID, zone: 'shared', data: { members: [], placements: { D: {}, E: {}, F: {} }, bgImages: { D: null, E: null, F: null } } }]);
+      await supabase.from('placements').insert([{ id: DB_ID, zone: 'shared', data: { members: [], placements: { D: {}, E: {}, F: {} }, knivesLeft: {}, bgImages: { D: null, E: null, F: null } } }]);
     }
   } catch(e) { console.warn('Supabase 加载失败', e); }
 
@@ -461,6 +536,15 @@ async function initSupabase() {
       if (d.bgImages) {
         bgImages = d.bgImages;
         idbPut('bgImages', bgImages);
+      }
+      if (d.knivesLeft) {
+        knivesLeft = d.knivesLeft;
+      } else if (members.length > 0) {
+        members.forEach(function(name) {
+          var done = 0;
+          ['D','E','F'].forEach(function(z) { done += (placements[z] && placements[z][name] ? placements[z][name].length : 0); });
+          knivesLeft[name] = Math.max(0, 3 - done);
+        });
       }
     }
   } catch(e) {}
@@ -507,7 +591,7 @@ function save() {
   supabase.from('placements').upsert({
     id: DB_ID,
     zone: 'shared',
-    data: { members: members, placements: placements, bgImages: bgImages }
+    data: { members: members, placements: placements, knivesLeft: knivesLeft, bgImages: bgImages }
   }).then(function() {
     supabaseSyncing = false;
   }).catch(function(e) {
@@ -727,15 +811,69 @@ function render() {
 }
 
 function renderChips() {
-  const container = document.getElementById('memberChips');
-  document.getElementById('memberCount').textContent = members.length > 0 ? `(${members.length}人)` : '';
+  var container = document.getElementById('memberChips');
+  var totalLeft = 0;
+  // 统计 knivesLeft > 0 的成员
+  var active = members.filter(function(name) { return (knivesLeft[name] || 0) > 0; });
+  document.getElementById('memberCount').textContent = active.length > 0 ? '(' + active.length + '人)' : '';
   container.innerHTML = '';
-  members.forEach(function(name) {
-    const chip = document.createElement('div');
+
+  active.forEach(function(name) {
+    var left = knivesLeft[name] || 0;
+    totalLeft += left;
+    var chip = document.createElement('div');
     chip.className = 'chip';
     chip.draggable = true;
     chip.dataset.name = name;
-    chip.innerHTML = '<span>' + escapeHtml(name) + '</span><button class="x" onclick="event.stopPropagation();removeMember(\'' + escapeHtml(name).replace(/'/g, "\\'") + '\')">×</button>';
+
+    var nameSpan = document.createElement('span');
+    nameSpan.textContent = escapeHtml(name);
+    chip.appendChild(nameSpan);
+
+    // 3格进度指示器
+    var knivesDiv = document.createElement('div');
+    knivesDiv.className = 'chip-knives';
+    for (var i = 0; i < 3; i++) {
+      var cell = document.createElement('span');
+      if (i < left) {
+        // 未用刀：绿色亮
+        cell.title = '标记' + (i + 1) + '刀已完成';
+        (function(idx, left, name) {
+          cell.addEventListener('click', function(e) {
+            e.stopPropagation();
+            if (!isLockHolder) { alert('请先获取操作权限'); return; }
+            // 点击绿色格：直接将 knivesLeft 减少到该格对应的数量
+            var newLeft = Math.max(0, left - 1);
+            knivesLeft[name] = newLeft;
+            save();
+            renderChips();
+            renderCompleted();
+            // 如果还有剩余刀（被点击的那个不是最后一把），在当前区加一条记录
+            if (newLeft >= 0) {
+              var zone = placements[currentArea] || {};
+              if (!zone[name]) zone[name] = [];
+              zone[name].push({ x: 50 + Math.random() * 10 - 5, y: 50 + Math.random() * 10 - 5 });
+              placements[currentArea] = zone;
+              save();
+              renderMap();
+            }
+          });
+        })(i, left, name);
+      } else {
+        cell.classList.add('used');
+      }
+      knivesDiv.appendChild(cell);
+    }
+    chip.appendChild(knivesDiv);
+
+    var xBtn = document.createElement('button');
+    xBtn.className = 'x';
+    xBtn.textContent = '×';
+    xBtn.onclick = function(e) {
+      e.stopPropagation();
+      removeMember(name);
+    };
+    chip.appendChild(xBtn);
 
     chip.addEventListener('dragstart', function(e) {
       chip.classList.add('dragging');
@@ -864,30 +1002,36 @@ function createPlacedEl(name, x, y, doSave, knifeIndex) {
   }
 }
 
-function renderRecords() {
+function renderCompleted() {
   var list = document.getElementById('recordList');
-  var zonePlacements = placements[currentArea] || {};
-  var totalKnives = 0;
-  Object.values(zonePlacements).forEach(function(positions) { totalKnives += positions.length; });
-  document.getElementById('placedCount').textContent = totalKnives > 0 ? '(' + totalKnives + '刀)' : '';
+  // 已完成 = knivesLeft === 0（3刀全部排完）
+  var done = members.filter(function(name) { return (knivesLeft[name] || 0) === 0; });
+  document.getElementById('placedCount').textContent = done.length > 0 ? '(' + done.length + '人)' : '';
 
-  if (totalKnives === 0) {
-    list.innerHTML = '<div class="empty-msg">还没有人<br>拖拽成员到地图上开始</div>';
+  if (done.length === 0) {
+    list.innerHTML = '<div class="empty-msg">暂无已完成成员<br>左侧安排出刀后自动移入</div>';
     return;
   }
 
   list.innerHTML = '';
-  Object.entries(zonePlacements).forEach(function(entry) {
-    var name = entry[0];
-    var positions = entry[1];
-    positions.forEach(function(pos, idx) {
-      var item = document.createElement('div');
-      item.className = 'record-item';
-      item.innerHTML = '<div class="member">' + escapeHtml(name) + ' <span style="color:#484f58;font-size:10px">第' + (idx + 1) + '刀</span></div><div class="pos">' + Math.round(pos.x) + '% , ' + Math.round(pos.y) + '%</div>';
-      list.appendChild(item);
-    });
+  done.forEach(function(name) {
+    // 计算该成员总完成刀数
+    var total = 0;
+    ['D','E','F'].forEach(function(z) { total += (placements[z] && placements[z][name] ? placements[z][name].length : 0); });
+    var pct = Math.min(100, (total / 3) * 100);
+
+    var item = document.createElement('div');
+    item.className = 'record-item';
+    item.innerHTML =
+      '<div class="member">' + escapeHtml(name) + '</div>' +
+      '<div class="bar"><div class="bar-fill" style="width:' + pct + '%"></div></div>' +
+      '<div class="bar-label">已出 ' + total + ' 刀 / 3刀</div>';
+    list.appendChild(item);
   });
 }
+
+// 兼容旧名称
+var renderRecords = renderCompleted;
 
 function clearBg() {
   if (!bgImages[currentArea]) {
@@ -910,6 +1054,7 @@ function addMember() {
   if (!name) return;
   if (members.indexOf(name) < 0) {
     members.push(name);
+    knivesLeft[name] = 3; // 初始3刀未安排
     save();
     renderChips();
   }
@@ -919,6 +1064,7 @@ function addMember() {
 function removeMember(name) {
   if (!isLockHolder) { alert('请先获取操作权限'); return; }
   members = members.filter(function(m) { return m !== name; });
+  delete knivesLeft[name];
   ['D','E','F'].forEach(function(z) {
     if (placements[z]) delete placements[z][name];
   });
@@ -968,7 +1114,7 @@ mapPanel.addEventListener('drop', function(e) {
       renderRecords();
     }
   } else {
-    // 从成员列表 chip 拖拽：新增一刀（跨 DEF 合计最多3刀）
+    // 从成员列表 chip 拖拽：新增一刀，同时减少剩余刀数
     var totalKnives = 0;
     for (var a in placements) totalKnives += (placements[a][name] || []).length;
     if (totalKnives >= 3) {
@@ -978,9 +1124,12 @@ mapPanel.addEventListener('drop', function(e) {
     existing.push({ x: x, y: y });
     zone[name] = existing;
     placements[currentArea] = zone;
+    // 减少剩余刀数
+    knivesLeft[name] = Math.max(0, (knivesLeft[name] || 0) - 1);
     save();
+    renderChips();
+    renderCompleted();
     renderMap();
-    renderRecords();
   }
 });
 
@@ -994,15 +1143,26 @@ function removePlacement(name, knifeIndex) {
   } else {
     delete placements[currentArea][name];
   }
+  // 重新计算剩余刀数
+  var total = 0;
+  ['D','E','F'].forEach(function(z) { total += (placements[z] && placements[z][name] ? placements[z][name].length : 0); });
+  knivesLeft[name] = Math.max(0, 3 - total);
   save();
+  renderChips();
+  renderCompleted();
   renderMap();
-  renderRecords();
 }
 
 function clearCurrentZone() {
   if (!isLockHolder) { alert('请先获取操作权限'); return; }
   if (!confirm('确定清空 ' + currentArea + ' 区所有出刀安排？')) return;
   placements[currentArea] = {};
+  // 重新计算所有成员剩余刀数
+  members.forEach(function(name) {
+    var total = 0;
+    ['D','E','F'].forEach(function(z) { total += (placements[z] && placements[z][name] ? placements[z][name].length : 0); });
+    knivesLeft[name] = Math.max(0, 3 - total);
+  });
   save();
   render();
 }
@@ -1064,7 +1224,8 @@ function importData() {
         placements = d.placements || { D: {}, E: {}, F: {} };
         if (d.bgImages) bgImages = d.bgImages;
         // 本地备份（离线时也能用）
-        try { localStorage.setItem('ba_legion_v5', JSON.stringify({ members: members, placements: placements, bgImages: bgImages })); } catch(e) {}
+        knivesLeft = d.knivesLeft || {};
+        try { localStorage.setItem('ba_legion_v5', JSON.stringify({ members: members, placements: placements, knivesLeft: knivesLeft, bgImages: bgImages })); } catch(e) {}
         // 同步到 Supabase（如果有的话），然后刷新
         save();
         setTimeout(function() { render(); }, 100);
