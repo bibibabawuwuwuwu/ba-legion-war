@@ -267,9 +267,6 @@ body { font-family: 'Microsoft YaHei', sans-serif; font-size: 14px; background: 
   <!-- 左侧成员 -->
   <div class="member-panel">
     <h3>待安排出刀 <span id="memberCount"></span></h3>
-    <div class="member-input">
-      <input type="text" id="quickAdd" placeholder="快速添加后回车" onkeydown="if(event.key==='Enter'){addMember();this.value=''}">
-    </div>
     <div class="member-chips" id="memberChips"></div>
   </div>
 
@@ -1255,20 +1252,6 @@ function clearAllPlacements() {
 // ═══════════════════════════════════════════
 // 成员管理
 // ═══════════════════════════════════════════
-function addMember() {
-  if (!isLockHolder) { alert('请先获取操作权限'); return; }
-  var input = document.getElementById('memberInput');
-  var name = input.value.trim();
-  if (!name) return;
-  if (members.indexOf(name) < 0) {
-    members.push(name);
-    knivesLeft[name] = 3; // 初始3刀未安排
-    save();
-    renderChips();
-  }
-  input.value = '';
-}
-
 function removeMember(name) {
   if (!isLockHolder) { alert('请先获取操作权限'); return; }
   members = members.filter(function(m) { return m !== name; });
