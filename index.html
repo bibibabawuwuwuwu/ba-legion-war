@@ -185,9 +185,11 @@ body { font-family: 'Microsoft YaHei', sans-serif; font-size: 14px; background: 
 .chip-knives span:hover:not(.used) { background: #2ea043; }
 
 /* 成员 chip 非锁 holder 禁用态 */
-.member-chips.readonly .chip { cursor: not-allowed; opacity: 0.6; pointer-events: none; }
+.member-chips.readonly .chip { cursor: not-allowed; opacity: 0.6; }
 .member-chips.readonly .chip .x { display: none; }
 .member-chips.readonly .chip-knives span { cursor: not-allowed; pointer-events: none; }
+.member-chips.readonly .chip.locked { cursor: pointer; opacity: 1; border: 1px solid #e94560; }
+.member-chips.readonly .chip.locked:hover { border-color: #f85149; background: #1c2128; }
 
 /* 地图放置元素非锁 holder 禁用 */
 .map-container.readonly .placed { cursor: not-allowed; }
@@ -940,9 +942,13 @@ function updateDragEnabled() {
   if (isLockHolder) {
     chips.classList.remove('readonly');
     mapContainer.classList.remove('readonly');
+    chips.querySelectorAll('.chip').forEach(function(c) { c.classList.remove('locked'); c.draggable = true; });
+    mapContainer.querySelectorAll('.placed').forEach(function(p) { p.draggable = true; });
   } else {
     chips.classList.add('readonly');
     mapContainer.classList.add('readonly');
+    chips.querySelectorAll('.chip').forEach(function(c) { c.classList.add('locked'); c.draggable = false; });
+    mapContainer.querySelectorAll('.placed').forEach(function(p) { p.draggable = false; });
   }
 }
 
@@ -1113,6 +1119,7 @@ function renderChips() {
     chip.appendChild(knivesDiv);
 
     chip.addEventListener('dragstart', function(e) {
+      if (!isLockHolder) { e.preventDefault(); return; }
       chip.classList.add('dragging');
       e.dataTransfer.setData('text/plain', name);
       e.dataTransfer.setData('application/ba-source', 'chip');
@@ -1120,6 +1127,9 @@ function renderChips() {
     });
     chip.addEventListener('dragend', function() {
       chip.classList.remove('dragging');
+    });
+    chip.addEventListener('click', function() {
+      if (!isLockHolder) { alert('请先获取操作权限'); }
     });
 
     container.appendChild(chip);
@@ -1187,8 +1197,9 @@ function createPlacedEl(name, x, y, doSave, knifeIndex) {
   };
   el.appendChild(delBtn);
 
-  el.draggable = true;
+  el.draggable = isLockHolder;
   el.addEventListener('dragstart', function(e) {
+    if (!isLockHolder) { e.preventDefault(); return; }
     el.style.opacity = '0.5';
     e.dataTransfer.setData('text/plain', name);
     e.dataTransfer.setData('application/ba-source', 'placed');
