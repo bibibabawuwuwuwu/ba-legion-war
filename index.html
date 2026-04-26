@@ -534,7 +534,7 @@ async function initSupabase() {
           ['D','E','F'].forEach(function(z) {
             // 始终信任 Supabase 数据（哪怕是 null），因为是跨设备共享的源
             if (supabaseBg[z] !== undefined && bgImages[z] !== supabaseBg[z]) {
-              bgImages[z] = supabaseBg[z];
+              bgImages[z] = supabaseBg[z] === null ? '__cleared__' : supabaseBg[z];
               changed = true;
             }
           });
@@ -603,7 +603,7 @@ async function initSupabase() {
             ['D','E','F'].forEach(function(z) {
               // supabase 有明确值（非 undefined）就写入，不管本地原来是什么
               if (supabaseBg[z] !== undefined && bgImages[z] !== supabaseBg[z]) {
-                bgImages[z] = supabaseBg[z];
+                bgImages[z] = supabaseBg[z] === null ? '__cleared__' : supabaseBg[z];
                 changed = true;
               }
             });
@@ -747,11 +747,16 @@ function save() {
     setTimeout(save, 2000);
     return;
   }
+  // 转换：'__cleared__' 哨兵值存为 null（Supabase 用 null 表示无背景）
+  var bgImagesForSave = {};
+  ['D','E','F'].forEach(function(z) {
+    bgImagesForSave[z] = bgImages[z] === '__cleared__' ? null : (bgImages[z] || null);
+  });
   supabaseSyncing = true;
   supabase.from('placements').upsert({
     id: DB_ID,
     zone: 'shared',
-    data: { members: members, placements: placements, knivesLeft: knivesLeft, bgImages: bgImages }
+    data: { members: members, placements: placements, knivesLeft: knivesLeft, bgImages: bgImagesForSave }
   }).then(function() {
     supabaseSyncing = false;
   }).catch(function(e) {
@@ -1155,12 +1160,13 @@ function renderMap() {
   (function _restoreBg() {
     if (!_idbCache || !_idbCache['bgImages']) return;
     var cached = _idbCache['bgImages'];
-    if (cached && cached[currentArea] && !bgImages[currentArea]) {
+    if (cached && cached[currentArea] && bgImages[currentArea] === undefined) {
       bgImages[currentArea] = cached[currentArea];
     }
   })();
 
-  if (bgImages[currentArea]) {
+  // 已清空的区域不显示背景
+  if (bgImages[currentArea] && bgImages[currentArea] !== '__cleared__') {
     document.getElementById('mapBg').src = bgImages[currentArea];
     document.getElementById('mapBg').style.display = 'block';
     noBg.style.display = 'none';
@@ -1323,13 +1329,13 @@ var renderRecords = renderCompleted;
 
 function clearBg() {
   if (!isLockHolder) { alert('请先获取操作权限'); return; }
-  if (!bgImages[currentArea]) {
+  if (!bgImages[currentArea] || bgImages[currentArea] === '__cleared__') {
     alert('当前区域没有背景图');
     return;
   }
-  if (!confirm('确定清除 ' + currentArea + ' 区背景图？（' + Math.round(bgImages[currentArea].length / 1024) + ' KB）')) return;
-  bgImages[currentArea] = null;
-  // 等待 IndexedDB 写完（同步更新了 _idbCache）再渲染
+  if (!confirm('确定清除 ' + currentArea + ' 区背景图？（' + Math.round((bgImages[currentArea]||'').length / 1024) + ' KB）')) return;
+  bgImages[currentArea] = '__cleared__';
+  // 等待 IndexedDB 写完再渲染和保存（避免切换tab时_renderMap读到旧缓存）
   idbPut('bgImages', bgImages).then(function() {
     save();
     renderMap();
@@ -1465,7 +1471,7 @@ function uploadBg(zone, input) {
   var reader = new FileReader();
   reader.onload = function(e) {
     bgImages[zone] = e.target.result;
-    // 等待 IndexedDB 写完（同步更新了 _idbCache）再渲染
+    // 等待 IndexedDB 写完再渲染和保存
     idbPut('bgImages', bgImages).then(function() {
       save();
       renderMap();
