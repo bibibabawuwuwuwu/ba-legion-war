@@ -748,6 +748,7 @@ function save() {
     return;
   }
   supabaseSyncing = true;
+  console.log('[DEBUG save] upserting bgImages D:', bgImages.D?.substring(0,50), 'E:', bgImages.E ? bgImages.E.substring(0,50) : bgImages.E, 'F:', bgImages.F);
   supabase.from('placements').upsert({
     id: DB_ID,
     zone: 'shared',
@@ -1323,6 +1324,7 @@ function renderCompleted() {
 var renderRecords = renderCompleted;
 
 function clearBg() {
+  console.log('[DEBUG clearBg] currentArea:', currentArea, 'isLockHolder:', isLockHolder, 'bgImages:', bgImages, 'supabaseSyncing:', supabaseSyncing);
   if (!isLockHolder) { alert('请先获取操作权限'); return; }
   if (!bgImages[currentArea]) {
     alert('当前区域没有背景图');
@@ -1332,6 +1334,7 @@ function clearBg() {
   bgImages[currentArea] = null;
   // 等待 IndexedDB 写完（同步更新了 _idbCache）再渲染
   idbPut('bgImages', bgImages).then(function() {
+    console.log('[DEBUG clearBg] IndexedDB written, calling save()');
     save();
     renderMap();
   });
