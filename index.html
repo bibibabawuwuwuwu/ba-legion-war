@@ -530,7 +530,6 @@ async function initSupabase() {
         }
         if (resp.data.data.bgImages) {
           var supabaseBg = resp.data.data.bgImages;
-          console.log('[DEBUG fetch bgImages] supabaseBg=', JSON.stringify(supabaseBg));
           var changed = false;
           ['D','E','F'].forEach(function(z) {
             // 始终信任 Supabase 数据（哪怕是 null），因为是跨设备共享的源
@@ -539,7 +538,6 @@ async function initSupabase() {
               changed = true;
             }
           });
-          console.log('[DEBUG fetch bgImages] changed=', changed, 'bgImages=', JSON.stringify(bgImages).substring(0, 200));
           if (changed) idbPut('bgImages', bgImages);
         }
         // knivesLeft：本地优先，Supabase 只补充本地没有的名字
@@ -601,7 +599,6 @@ async function initSupabase() {
           if (payload.new.data.bgImages) {
             // 订阅回调：其他设备清背景时 null 值也要同步写入
             var supabaseBg = payload.new.data.bgImages;
-            console.log('[DEBUG subscribe bgImages] supabaseBg=', JSON.stringify(supabaseBg).substring(0, 300));
             var changed = false;
             ['D','E','F'].forEach(function(z) {
               // supabase 有明确值（非 undefined）就写入，不管本地原来是什么
@@ -610,7 +607,6 @@ async function initSupabase() {
                 changed = true;
               }
             });
-            console.log('[DEBUG subscribe bgImages] changed=', changed, 'bgImages=', JSON.stringify(bgImages).substring(0, 200));
             if (changed) {
               idbPut('bgImages', bgImages);
               dataChanged = true;
@@ -635,7 +631,7 @@ async function initSupabase() {
         supabaseSyncing = false;
       }
     });
-    ref.subscribe(function(status) { console.log('[DEBUG placements-sync subscribe status]', status); });
+    ref.subscribe();
 
     // 操作锁实时订阅
     var lockRef = supabase.channel('operator-lock-sync');
