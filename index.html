@@ -56,9 +56,19 @@ body { font-family: 'Microsoft YaHei', sans-serif; font-size: 14px; background: 
 
 /* 移动端横屏：面板改百分比宽度，地图等比缩放 */
 @media (max-height: 500px) {
-  .main { flex-direction: row; }
+  .main { flex-direction: row; height: calc(100vh - 44px); }
   .member-panel { width: 28vw !important; min-width: 0; flex-shrink: 0; }
   .side-panel { width: 28vw !important; min-width: 0; flex-shrink: 0; }
+  .map-panel { flex: 1; min-width: 0; }
+  .map-container { width: 100%; height: 100%; }
+  .map-container img.bg { width: 100%; height: 100%; object-fit: contain; }
+}
+
+/* 移动端竖屏：侧面板收紧，地图占满剩余宽度 */
+@media (max-width: 600px) {
+  .main { flex-direction: row; height: calc(100vh - 44px); }
+  .member-panel { width: 120px !important; min-width: 0; flex-shrink: 0; }
+  .side-panel { width: 90px !important; min-width: 0; flex-shrink: 0; }
   .map-panel { flex: 1; min-width: 0; }
   .map-container { width: 100%; height: 100%; }
   .map-container img.bg { width: 100%; height: 100%; object-fit: contain; }
