@@ -816,7 +816,10 @@ function renderChips() {
   var totalLeft = 0;
   // 统计 knivesLeft > 0 的成员
   var active = members.filter(function(name) { return (knivesLeft[name] || 0) > 0; });
-  document.getElementById('memberCount').textContent = active.length > 0 ? '(' + active.length + '人)' : '';
+  var totalKnives = members.length * 3;
+  var remainingKnives = 0;
+  members.forEach(function(name) { remainingKnives += (knivesLeft[name] || 0); });
+  document.getElementById('memberCount').textContent = totalKnives > 0 ? '(' + remainingKnives + '-' + totalKnives + ')' : '';
   container.innerHTML = '';
 
   active.forEach(function(name) {
@@ -1007,7 +1010,11 @@ function renderCompleted() {
   var list = document.getElementById('recordList');
   // 已完成 = knivesLeft === 0（3刀全部排完）
   var done = members.filter(function(name) { return (knivesLeft[name] || 0) === 0; });
-  document.getElementById('placedCount').textContent = done.length > 0 ? '(' + done.length + '人)' : '';
+  var totalKnives = members.length * 3;
+  var remainingKnives = 0;
+  members.forEach(function(name) { remainingKnives += (knivesLeft[name] || 0); });
+  var completedKnives = totalKnives - remainingKnives;
+  document.getElementById('placedCount').textContent = totalKnives > 0 ? '(' + completedKnives + '-' + totalKnives + ')' : '';
 
   if (done.length === 0) {
     list.innerHTML = '<div class="empty-msg">暂无已完成成员<br>左侧安排出刀后自动移入</div>';
@@ -1201,10 +1208,10 @@ document.querySelectorAll('.tab').forEach(function(btn) {
 // ═══════════════════════════════════════════
 function exportData() {
   try {
-    var blob = new Blob([JSON.stringify({ members: members, placements: placements, bgImages: bgImages }, null, 2)], {type:'application/json'});
+    var blob = new Blob([JSON.stringify({ members: members }, null, 2)], {type:'application/json'});
     var a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = 'legion_arrange.json';
+    a.download = 'member_list.json';
     a.click();
   } catch(e) { alert('导出失败'); }
 }
@@ -1222,12 +1229,9 @@ function importData() {
       try {
         var d = JSON.parse(ev.target.result);
         members = d.members || [];
-        placements = d.placements || { D: {}, E: {}, F: {} };
-        if (d.bgImages) bgImages = d.bgImages;
-        // 本地备份（离线时也能用）
-        knivesLeft = d.knivesLeft || {};
-        try { localStorage.setItem('ba_legion_v5', JSON.stringify({ members: members, placements: placements, knivesLeft: knivesLeft, bgImages: bgImages })); } catch(e) {}
-        // 同步到 Supabase（如果有的话），然后刷新
+        // 重新计算所有人的剩余刀数（每人3刀）
+        knivesLeft = {};
+        members.forEach(function(name) { knivesLeft[name] = 3; });
         save();
         setTimeout(function() { render(); }, 100);
       } catch(err) { alert('导入失败: 文件格式错误'); }
