@@ -497,7 +497,16 @@ async function initSupabase() {
             }
           }
           if (payload.new.data.bgImages) {
-            bgImages = payload.new.data.bgImages;
+            // 合并：本地已有数据（IndexedDB优先）不覆盖，只补充空槽位
+            var supabaseBg = payload.new.data.bgImages;
+            var hasLocalBg = bgImages.D || bgImages.E || bgImages.F;
+            if (hasLocalBg) {
+              ['D','E','F'].forEach(function(z) {
+                if (!bgImages[z] && supabaseBg[z]) bgImages[z] = supabaseBg[z];
+              });
+            } else {
+              bgImages = supabaseBg;
+            }
             idbPut('bgImages', bgImages);
             dataChanged = true;
           }
