@@ -606,9 +606,14 @@ async function initSupabase() {
     var raw = localStorage.getItem('ba_legion_v5');
     if (raw) {
       var d = JSON.parse(raw);
-      if (members.length === 0 && d.members) members = d.members;
-      var hasPlacements = Object.keys(placements.D).length === 0 && Object.keys(placements.E).length === 0 && Object.keys(placements.F).length === 0;
-      if (hasPlacements && d.placements) {
+      // 优先用 localStorage 的完整数据（成员+排刀+剩余刀数）
+      // 只要 localStorage 任意 zone 有排刀记录，就用它
+      var localHasPlacements = d.placements && (
+        Object.keys(d.placements.D || {}).length > 0 ||
+        Object.keys(d.placements.E || {}).length > 0 ||
+        Object.keys(d.placements.F || {}).length > 0
+      );
+      if (localHasPlacements) {
         ['D','E','F'].forEach(function(z) {
           if (!d.placements[z]) return;
           Object.keys(d.placements[z]).forEach(function(name) {
@@ -617,19 +622,15 @@ async function initSupabase() {
           });
         });
         placements = d.placements;
+        if (d.knivesLeft) knivesLeft = d.knivesLeft;
+        if (d.members && d.members.length > 0) members = d.members;
+      } else if (members.length === 0 && d.members) {
+        // Supabase 和 localStorage 都没有排刀数据，仅恢复成员名单
+        members = d.members;
       }
       if (d.bgImages) {
         bgImages = d.bgImages;
         idbPut('bgImages', bgImages);
-      }
-      if (d.knivesLeft) {
-        knivesLeft = d.knivesLeft;
-      } else if (members.length > 0) {
-        members.forEach(function(name) {
-          var done = 0;
-          ['D','E','F'].forEach(function(z) { done += (placements[z] && placements[z][name] ? placements[z][name].length : 0); });
-          knivesLeft[name] = Math.max(0, 3 - done);
-        });
       }
     }
   } catch(e) {}
