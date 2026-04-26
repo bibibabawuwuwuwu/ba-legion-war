@@ -54,6 +54,16 @@ body { font-family: 'Microsoft YaHei', sans-serif; font-size: 14px; background: 
 
 .main { display: flex; height: calc(100vh - 44px); overflow: hidden; }
 
+/* 移动端横屏：面板改百分比宽度，地图等比缩放 */
+@media (max-height: 500px) {
+  .main { flex-direction: row; }
+  .member-panel { width: 28vw !important; min-width: 0; flex-shrink: 0; }
+  .side-panel { width: 28vw !important; min-width: 0; flex-shrink: 0; }
+  .map-panel { flex: 1; min-width: 0; }
+  .map-container { width: 100%; height: 100%; }
+  .map-container img.bg { width: 100%; height: 100%; object-fit: contain; }
+}
+
 /* 左侧：拖拽成员区 */
 .member-panel { width: 260px; background: #161b22; border-right: 1px solid #30363d; display: flex; flex-direction: column; }
 .member-panel h3 { padding: 8px 14px 6px; font-size: 11px; color: #484f58; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid #21262d; display: flex; justify-content: space-between; align-items: center; }
