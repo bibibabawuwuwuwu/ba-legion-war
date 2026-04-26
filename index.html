@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>军团战排刀台</title>
+<title>娞娞研究所-军团战排刀台</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { font-family: 'Microsoft YaHei', sans-serif; background: #0d1117; color: #e6edf3; min-height: 100vh; overflow: hidden; }
@@ -116,7 +116,7 @@ body { font-family: 'Microsoft YaHei', sans-serif; background: #0d1117; color: #
 <body>
 
 <div class="header">
-  <h1>军团战排刀台</h1>
+  <h1>娞娞研究所-军团战排刀台</h1>
   <div class="tabs">
     <button class="tab active" data-area="D">D区</button>
     <button class="tab" data-area="E">E区</button>
@@ -953,8 +953,10 @@ mapPanel.addEventListener('drop', function(e) {
       renderRecords();
     }
   } else {
-    // 从成员列表 chip 拖拽：新增一刀
-    if (existing.length >= 3) {
+    // 从成员列表 chip 拖拽：新增一刀（跨 DEF 合计最多3刀）
+    var totalKnives = 0;
+    for (var a in placements) totalKnives += (placements[a][name] || []).length;
+    if (totalKnives >= 3) {
       alert(name + ' 已排满3刀，无法继续添加');
       return;
     }
