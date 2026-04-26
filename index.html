@@ -330,6 +330,7 @@ let knivesLeft = {};
 let bgImages = { D: null, E: null, F: null };
 let db = null;
 let supabaseSyncing = false; // 防止 realtime 回写触发死循环
+let dbReady = false; // 数据未就绪前禁止渲染，防止订阅回调抢先渲染空数据
 // 拖拽状态：记录当前拖拽的源成员/刀序号，和最后记录的鼠标坐标
 let _dragSrcName = null;
 let _dragSrcIdx = null;
@@ -459,6 +460,8 @@ async function initSupabase() {
         }
       }
     } catch(e) {}
+    dbReady = true; // 离线数据就绪
+    render();
     return;
   }
 
@@ -597,8 +600,9 @@ async function initSupabase() {
     }
     // fetch + 首次订阅拦截已完成，开放 realtime 回调
     supabaseSyncing = false;
+    dbReady = true; // 数据就绪，后续渲染正常放行
     render(); // 用已加载数据渲染一次
-  } catch(e) { console.warn('Supabase 加载失败', e); }
+  } catch(e) { console.warn('Supabase 加载失败', e); dbReady = true; render(); }
 
   // Fallback：离线时从 localStorage 恢复成员和出刀记录
   try {
@@ -882,6 +886,7 @@ function updateDragEnabled() {
 // 渲染
 // ═══════════════════════════════════════════
 function render() {
+  if (!dbReady) return; // 数据未就绪不渲染
   renderChips();
   renderMap();
   renderRecords();
@@ -1450,7 +1455,7 @@ function escapeHtml(str) {
 // ═══════════════════════════════════════════
 // 启动
 // ═══════════════════════════════════════════
-init().then(render); // initSupabase 内部已有一次 render，这里确保 init 完成后渲染一次
+init(); // initSupabase 内部在数据就绪后会自动 render，无需外部再调用
 </script>
 </body>
 </html>
