@@ -138,7 +138,7 @@ body { font-family: 'Microsoft YaHei', sans-serif; background: #0d1117; color: #
   <div class="modal-box">
     <h2>输入口令申请操作权限</h2>
     <p>指挥者输入口令获取排刀操作权限</p>
-    <input type="password" id="lockPasswordInput" placeholder="输入口令 112233" onkeydown="if(event.key==='Enter')submitLockPassword()">
+    <input type="password" id="lockPasswordInput" placeholder="输入指挥者口令" onkeydown="if(event.key==='Enter')submitLockPassword()">
     <div class="modal-btns">
       <button class="btn-ok" onclick="submitLockPassword()">确认</button>
       <button class="btn-cancel" onclick="hideLockModal()">取消</button>
@@ -391,8 +391,9 @@ async function initSupabase() {
             lease_until: payload.new.lease_until,
             is_locked: payload.new.is_locked
           };
-          fetchLockState();
         }
+        updateLockBanner();
+        updateDragEnabled();
       } finally {
         lockSyncing = false;
       }
@@ -640,6 +641,12 @@ async function fetchLockState() {
       leaseUntil = lock.lease_until;
       startLockHeartbeat();
     }
+    window._cachedLock = {
+      operator_id: lock.operator_id,
+      operator_name: lock.operator_name,
+      lease_until: lock.lease_until,
+      is_locked: lock.is_locked
+    };
     updateLockBanner();
     updateDragEnabled();
   } catch(e) {}
@@ -677,12 +684,12 @@ function updateLockBanner() {
     btnRelease.style.display = '';
     btnAcquire.style.display = 'none';
   } else {
-    // 检查是否有其他锁持有者
-    var resp = window._cachedLock;
-    if (resp && resp.is_locked && resp.lease_until > Date.now()) {
-      ownerName.textContent = resp.operator_name || '未知';
-      var remaining = Math.ceil((resp.lease_until - Date.now()) / 1000);
-      hint.textContent = '剩余 ' + remaining + ' 秒';
+    // 非锁持有者：显示当前锁持有者信息
+    var cached = window._cachedLock;
+    if (cached && cached.is_locked && cached.lease_until > Date.now()) {
+      ownerName.textContent = cached.operator_name || '未知';
+      var remaining = Math.ceil((cached.lease_until - Date.now()) / 1000);
+      hint.textContent = '（仅限浏览）剩余 ' + remaining + ' 秒';
     } else {
       ownerName.textContent = '（无人）';
       hint.textContent = '暂无操作者';
