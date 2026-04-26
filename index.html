@@ -217,6 +217,13 @@ body { font-family: 'Microsoft YaHei', sans-serif; font-size: 14px; background: 
 .footer { padding: 10px 14px; border-top: 1px solid #21262d; }
 .footer button { width: 100%; padding: 8px; background: #21262d; color: #8b949e; border: 1px solid #30363d; border-radius: 6px; cursor: pointer; font-size: 12px; font-family: inherit; }
 .footer button:hover { background: #30363d; color: #e6edf3; }
+/* 右键快捷菜单 */
+#ctxMenu { position: fixed; background: #1c2128; border: 1px solid #30363d; border-radius: 8px; padding: 4px 0; z-index: 9999; display: none; box-shadow: 0 8px 24px rgba(0,0,0,0.4); min-width: 130px; }
+#ctxMenu .ctx-item { padding: 8px 16px; cursor: pointer; font-size: 13px; color: #e6edf3; }
+#ctxMenu .ctx-item:hover { background: #388bfd33; color: #79c0ff; }
+#ctxMenu .ctx-item.danger { color: #e94560; }
+#ctxMenu .ctx-item.danger:hover { background: #e9456022; }
+#ctxMenu .ctx-divider { height: 1px; background: #30363d; margin: 4px 0; }
 </style>
 </head>
 <body>
@@ -293,6 +300,11 @@ body { font-family: 'Microsoft YaHei', sans-serif; font-size: 14px; background: 
   </div>
 </div>
 
+<div id="ctxMenu">
+  <div class="ctx-item" onclick="ctxAction(1)">已出1刀</div>
+  <div class="ctx-item" onclick="ctxAction(2)">已出2刀</div>
+  <div class="ctx-item" onclick="ctxAction(3)">已出3刀</div>
+</div>
 <script>
 // ═══════════════════════════════════════════
 // Supabase 配置（公共 anon key，前端安全）
@@ -853,6 +865,51 @@ function render() {
   renderRecords();
 }
 
+// ═══════════════════════════════════════════
+// 右键快捷菜单
+// ═══════════════════════════════════════════
+var ctxTargetName = '';
+function showCtxMenu(e, name) {
+  e.preventDefault();
+  ctxTargetName = name;
+  var menu = document.getElementById('ctxMenu');
+  menu.style.display = 'block';
+  var x = e.clientX, y = e.clientY;
+  var mw = 130, mh = 120;
+  if (x + mw > window.innerWidth) x = window.innerWidth - mw - 8;
+  if (y + mh > window.innerHeight) y = window.innerHeight - mh - 8;
+  menu.style.left = x + 'px';
+  menu.style.top = y + 'px';
+}
+document.addEventListener('click', function() {
+  document.getElementById('ctxMenu').style.display = 'none';
+});
+function ctxAction(count) {
+  if (!ctxTargetName) return;
+  spendKnivesQuick(ctxTargetName, count);
+  ctxTargetName = '';
+  document.getElementById('ctxMenu').style.display = 'none';
+}
+
+// 快捷消耗刀数（双击或右键菜单）
+function spendKnivesQuick(name, count) {
+  if (!isLockHolder) { alert('请先获取操作权限'); return; }
+  var left = knivesLeft[name] || 0;
+  if (left <= 0) { alert('该成员已无刀可排'); return; }
+  var toSpend = Math.min(count, left);
+  for (var i = 0; i < toSpend; i++) {
+    knivesLeft[name]--;
+    var zone = placements[currentArea] || {};
+    if (!zone[name]) zone[name] = [];
+    zone[name].push({ x: 50 + Math.random() * 10 - 5, y: 50 + Math.random() * 10 - 5 });
+    placements[currentArea] = zone;
+  }
+  save();
+  renderChips();
+  renderCompleted();
+  renderMap();
+}
+
 function renderChips() {
   var container = document.getElementById('memberChips');
   var totalLeft = 0;
@@ -871,6 +928,16 @@ function renderChips() {
     chip.className = 'chip';
     chip.draggable = true;
     chip.dataset.name = name;
+    // 双击：快捷消耗1刀
+    chip.addEventListener('dblclick', function(e) {
+      e.stopPropagation();
+      spendKnivesQuick(name, 1);
+    });
+    // 右键：显示快捷菜单
+    chip.addEventListener('contextmenu', function(e) {
+      e.stopPropagation();
+      showCtxMenu(e, name);
+    });
 
     var nameSpan = document.createElement('span');
     nameSpan.className = 'chip-name';
