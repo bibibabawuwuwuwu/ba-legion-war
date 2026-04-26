@@ -529,11 +529,11 @@ async function initSupabase() {
           placements = p;
         }
         if (resp.data.data.bgImages) {
-          // 优先用 IndexedDB 本地数据，但 null 值也要同步（其他设备清背景）
           var supabaseBg = resp.data.data.bgImages;
           var changed = false;
           ['D','E','F'].forEach(function(z) {
-            if (supabaseBg[z] !== undefined && bgImages[z] !== supabaseBg[z]) {
+            // 本地已有值（IndexedDB，非 null）则不覆盖；其他设备清背景时远程是 null，本地有值也不会被覆盖
+            if (supabaseBg[z] !== undefined && (bgImages[z] === null || bgImages[z] === undefined)) {
               bgImages[z] = supabaseBg[z];
               changed = true;
             }
