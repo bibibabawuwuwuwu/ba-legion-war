@@ -402,6 +402,8 @@ function idbGet(key) {
 function idbPut(key, val) {
   return new Promise(function(resolve, reject) {
     if (!db) { resolve(null); return; }
+    // 同步写入缓存（先于 async 写入完成，确保 renderMap 读取到最新值）
+    _idbCache[key] = val;
     var tx = db.transaction(STORE_NAME, 'readwrite');
     var store = tx.objectStore(STORE_NAME);
     var r = store.put(val, key);
@@ -1299,8 +1301,11 @@ function clearBg() {
   }
   if (!confirm('确定清除 ' + currentArea + ' 区背景图？（' + Math.round(bgImages[currentArea].length / 1024) + ' KB）')) return;
   bgImages[currentArea] = null;
-  save();
-  renderMap();
+  // 等待 IndexedDB 写完（同步更新了 _idbCache）再渲染
+  idbPut('bgImages', bgImages).then(function() {
+    save();
+    renderMap();
+  });
 }
 
 function clearAllPlacements() {
@@ -1432,8 +1437,11 @@ function uploadBg(zone, input) {
   var reader = new FileReader();
   reader.onload = function(e) {
     bgImages[zone] = e.target.result;
-    save();
-    renderMap();
+    // 等待 IndexedDB 写完（同步更新了 _idbCache）再渲染
+    idbPut('bgImages', bgImages).then(function() {
+      save();
+      renderMap();
+    });
   };
   reader.readAsDataURL(file);
   input.value = '';
