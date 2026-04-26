@@ -224,6 +224,9 @@ body { font-family: 'Microsoft YaHei', sans-serif; font-size: 14px; background: 
 #ctxMenu .ctx-item.danger { color: #e94560; }
 #ctxMenu .ctx-item.danger:hover { background: #e9456022; }
 #ctxMenu .ctx-divider { height: 1px; background: #30363d; margin: 4px 0; }
+#ctxMenuUndo { position: fixed; background: #1c2128; border: 1px solid #30363d; border-radius: 8px; padding: 4px 0; z-index: 9999; display: none; box-shadow: 0 8px 24px rgba(0,0,0,0.4); min-width: 130px; }
+#ctxMenuUndo .ctx-item { padding: 8px 16px; cursor: pointer; font-size: 13px; color: #e6edf3; }
+#ctxMenuUndo .ctx-item:hover { background: #e9456033; color: #e94560; }
 </style>
 </head>
 <body>
@@ -304,6 +307,11 @@ body { font-family: 'Microsoft YaHei', sans-serif; font-size: 14px; background: 
   <div class="ctx-item" onclick="ctxAction(1)">已出1刀</div>
   <div class="ctx-item" onclick="ctxAction(2)">已出2刀</div>
   <div class="ctx-item" onclick="ctxAction(3)">已出3刀</div>
+</div>
+<div id="ctxMenuUndo">
+  <div class="ctx-item" onclick="ctxUndoAction(1)">退回1刀</div>
+  <div class="ctx-item" onclick="ctxUndoAction(2)">退回2刀</div>
+  <div class="ctx-item" onclick="ctxUndoAction(3)">退回3刀</div>
 </div>
 <script>
 // ═══════════════════════════════════════════
@@ -907,6 +915,57 @@ function spendKnivesQuick(name, count) {
   renderCompleted();
 }
 
+// ═══════════════════════════════════════════
+// 右侧撤回功能
+// ═══════════════════════════════════════════
+var ctxUndoTarget = '';
+function showUndoMenu(e, name) {
+  e.preventDefault();
+  ctxUndoTarget = name;
+  var menu = document.getElementById('ctxMenuUndo');
+  menu.style.display = 'block';
+  var x = e.clientX, y = e.clientY;
+  var mw = 130, mh = 120;
+  if (x + mw > window.innerWidth) x = window.innerWidth - mw - 8;
+  if (y + mh > window.innerHeight) y = window.innerHeight - mh - 8;
+  menu.style.left = x + 'px';
+  menu.style.top = y + 'px';
+}
+document.addEventListener('click', function() {
+  document.getElementById('ctxMenu').style.display = 'none';
+  document.getElementById('ctxMenuUndo').style.display = 'none';
+});
+function ctxUndoAction(count) {
+  if (!ctxUndoTarget) return;
+  refundKnives(ctxUndoTarget, count);
+  ctxUndoTarget = '';
+  document.getElementById('ctxMenuUndo').style.display = 'none';
+}
+
+// 撤回刀数（右键菜单），从当前区移除记录
+function refundKnives(name, count) {
+  if (!isLockHolder) { alert('请先获取操作权限'); return; }
+  var left = knivesLeft[name] || 0;
+  var used = 3 - left;
+  if (used <= 0) { alert('该成员没有可撤回的刀'); return; }
+  var toRefund = Math.min(count, used);
+  // placements 结构: { D: { name: [{x,y},...], ... }, E: {...}, F: {...} }
+  var zone = placements[currentArea] || {};
+  var nameArr = zone[name] || [];
+  var removed = 0;
+  for (var i = nameArr.length - 1; i >= 0 && removed < toRefund; i--) {
+    nameArr.splice(i, 1);
+    removed++;
+  }
+  zone[name] = nameArr;
+  placements[currentArea] = zone;
+  knivesLeft[name] = Math.min(3, left + toRefund);
+  save();
+  renderChips();
+  renderCompleted();
+  renderMap();
+}
+
 function renderChips() {
   var container = document.getElementById('memberChips');
   var totalLeft = 0;
@@ -1119,6 +1178,16 @@ function renderCompleted() {
 
     var chip = document.createElement('div');
     chip.className = 'done-chip';
+    // 双击：撤回1刀
+    chip.addEventListener('dblclick', function(e) {
+      e.stopPropagation();
+      refundKnives(name, 1);
+    });
+    // 右键：显示撤回菜单
+    chip.addEventListener('contextmenu', function(e) {
+      e.stopPropagation();
+      showUndoMenu(e, name);
+    });
 
     var nameSpan = document.createElement('span');
     nameSpan.className = 'done-name';
