@@ -591,11 +591,21 @@ async function initSupabase() {
             idbPut('bgImages', bgImages);
           }
         }
+        // knivesLeft：本地优先，Supabase 只补充本地没有的名字
         if (resp.data.data.knivesLeft) {
-          knivesLeft = resp.data.data.knivesLeft;
+          var supabaseKl = resp.data.data.knivesLeft;
+          var hasLocalKl = Object.keys(knivesLeft).length > 0;
+          if (hasLocalKl) {
+            Object.keys(supabaseKl).forEach(function(name) {
+              if (!(name in knivesLeft)) knivesLeft[name] = supabaseKl[name];
+            });
+          } else {
+            knivesLeft = supabaseKl;
+          }
         } else {
           // 兼容旧数据：根据已完成刀数计算剩余刀数
           (resp.data.data.members || []).forEach(function(name) {
+            if (name in knivesLeft) return; // 已从本地保留的跳过
             var done = 0;
             ['D','E','F'].forEach(function(z) { done += (placements[z] && placements[z][name] ? placements[z][name].length : 0); });
             knivesLeft[name] = Math.max(0, 3 - done);
