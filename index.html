@@ -250,7 +250,6 @@ body { font-family: 'Microsoft YaHei', sans-serif; font-size: 14px; background: 
   <button class="btn btn-gray" onclick="clearAllPlacements()">重置排刀</button>
   <div class="vsep"></div>
   <span class="lock-info" id="lockInfo"></span>
-  <input type="password" id="lockPwd" placeholder="指挥者口令" style="width:100px" onkeydown="if(event.key==='Enter')submitLockPassword()">
   <button class="btn" id="btnLock" onclick="showLockModal()">申请操作权</button>
   <button class="btn btn-red" id="btnRelease" style="display:none" onclick="releaseLock()">释放操作权</button>
 </div>
@@ -845,30 +844,25 @@ function stopLockHeartbeat() {
 
 function updateLockBanner() {
   var lockInfo = document.getElementById('lockInfo');
-  var tbInput = document.getElementById('lockPwd');
   var btnAcquire = document.getElementById('btnLock');
   var btnRelease = document.getElementById('btnRelease');
   if (!lockInfo) return;
   if (!supabaseAvailable) {
     lockInfo.textContent = '';
     lockInfo.className = 'lock-info';
-    if (tbInput) tbInput.style.display = 'none';
     if (btnAcquire) btnAcquire.style.display = 'none';
     if (btnRelease) btnRelease.style.display = 'none';
     return;
   }
   lockInfo.className = 'lock-info active';
-  if (tbInput) tbInput.style.display = isLockHolder ? 'none' : '';
   if (btnAcquire) btnAcquire.style.display = isLockHolder ? 'none' : '';
   if (btnRelease) btnRelease.style.display = isLockHolder ? '' : 'none';
   if (isLockHolder) {
-    var remaining = Math.max(0, Math.ceil((leaseUntil - Date.now()) / 1000));
-    lockInfo.innerHTML = '&#128274; 操作者：<span class="lock-name">' + operatorName + '（你）</span> 剩余 ' + remaining + ' 秒';
+    lockInfo.innerHTML = '&#128274; 操作者：<span class="lock-name">' + operatorName + '（你）</span>';
   } else {
     var cached = window._cachedLock;
     if (cached && cached.is_locked && cached.lease_until > Date.now()) {
-      var remaining = Math.ceil((cached.lease_until - Date.now()) / 1000);
-      lockInfo.innerHTML = '&#128274; 操作者：<span class="lock-name">' + (cached.operator_name || '未知') + '</span>（浏览）剩余 ' + remaining + ' 秒';
+      lockInfo.innerHTML = '&#128274; 操作者：<span class="lock-name">' + (cached.operator_name || '未知') + '</span>（浏览）';
     } else {
       lockInfo.textContent = '暂无操作者';
     }
