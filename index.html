@@ -811,34 +811,15 @@ function createPlacedEl(name, x, y, doSave, knifeIndex) {
   el.addEventListener('dragend', function() {
     el.style.opacity = '1';
   });
-  // 直接在 placed 元素上监听 dragover/drop（不冒泡到 mapPanel）
+  // placed 元素的 dragover：允许事件冒泡到 mapPanel，drop 同理
   el.addEventListener('dragover', function(e) {
     e.preventDefault();
-    e.stopPropagation();
     e.dataTransfer.dropEffect = 'move';
   });
+  // 不在这里拦截 drop，让事件冒泡到 mapPanel 统一处理
   el.addEventListener('drop', function(e) {
     e.preventDefault();
-    e.stopPropagation();
-    var src = e.dataTransfer.getData('application/ba-source');
-    if (src !== 'placed') return; // 只处理 placed 来源
-
-    var ki = parseInt(e.dataTransfer.getData('application/ba-knife'), 10);
-    if (isNaN(ki)) return;
-
-    var rect = mapContainer.getBoundingClientRect();
-    var nx = ((e.clientX - rect.left) / rect.width) * 100;
-    var ny = ((e.clientY - rect.top) / rect.height) * 100;
-    nx = Math.max(3, Math.min(97, nx));
-    ny = Math.max(3, Math.min(97, ny));
-
-    var zone = placements[currentArea];
-    if (zone && zone[name] && zone[name][ki]) {
-      zone[name][ki] = { x: nx, y: ny };
-      save();
-      renderMap();
-      renderRecords();
-    }
+    // 拖拽放置的逻辑全部由 mapPanel drop 处理器接管
   });
 
   container.appendChild(el);
@@ -922,7 +903,8 @@ var mapContainer = document.getElementById('mapContainer');
 
 mapPanel.addEventListener('dragover', function(e) {
   e.preventDefault();
-  e.dataTransfer.dropEffect = 'copy';
+  var src = e.dataTransfer.getData('application/ba-source');
+  e.dataTransfer.dropEffect = src === 'placed' ? 'move' : 'copy';
 });
 mapPanel.addEventListener('drop', function(e) {
   e.preventDefault();
