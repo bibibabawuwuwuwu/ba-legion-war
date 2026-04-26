@@ -468,6 +468,9 @@ async function initSupabase() {
   }
 
   // Supabase 可用：订阅实时同步
+  // 订阅在 fetch 之前建立，initial 数据会比 fetch 先到回调里。
+  // 用 supabaseSyncing=true 拦住订阅首次回调，等 fetch+render 跑完再开放。
+  supabaseSyncing = true;
   try {
     var ref = supabase.channel('placements-sync');
     ref.on('postgres_changes', {
@@ -579,6 +582,9 @@ async function initSupabase() {
       // 首次：插入一条空记录
       await supabase.from('placements').insert([{ id: DB_ID, zone: 'shared', data: { members: [], placements: { D: {}, E: {}, F: {} }, knivesLeft: {}, bgImages: { D: null, E: null, F: null } } }]);
     }
+    // fetch + 首次订阅拦截已完成，开放 realtime 回调
+    supabaseSyncing = false;
+    render(); // 用已加载数据渲染一次
   } catch(e) { console.warn('Supabase 加载失败', e); }
 
   // Fallback：离线时从 localStorage 恢复成员和出刀记录
