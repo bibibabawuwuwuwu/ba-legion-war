@@ -577,8 +577,19 @@ async function initSupabase() {
           placements = p;
         }
         if (resp.data.data.bgImages) {
-          bgImages = resp.data.data.bgImages;
-          idbPut('bgImages', bgImages);
+          // 优先用 IndexedDB 本地数据（用户本地上传的图片），
+          // 只在对应 zone 为空时补充 Supabase 数据（首次在其他设备加载）
+          var supabaseBg = resp.data.data.bgImages;
+          var hasLocalBg = bgImages.D || bgImages.E || bgImages.F;
+          if (hasLocalBg) {
+            ['D','E','F'].forEach(function(z) {
+              if (!bgImages[z] && supabaseBg[z]) bgImages[z] = supabaseBg[z];
+            });
+            idbPut('bgImages', bgImages);
+          } else {
+            bgImages = supabaseBg;
+            idbPut('bgImages', bgImages);
+          }
         }
         if (resp.data.data.knivesLeft) {
           knivesLeft = resp.data.data.knivesLeft;
