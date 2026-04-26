@@ -243,11 +243,11 @@ body { font-family: 'Microsoft YaHei', sans-serif; font-size: 14px; background: 
   <input type="text" id="memberInput" placeholder="回车添加" onkeydown="if(event.key==='Enter')addMember()">
   <button class="btn" onclick="addMember()">+ 添加</button>
   <div class="sep"></div>
-  <button class="btn btn-gray" onclick="exportData()">导出</button>
-  <button class="btn btn-gray" onclick="importData()">导入</button>
+  <button class="btn btn-gray" onclick="exportData()">导出名单</button>
+  <button class="btn btn-gray" onclick="importData()">导入名单</button>
   <div class="sep"></div>
   <button class="btn btn-gray" onclick="clearBg()">清背景</button>
-  <button class="btn btn-gray" onclick="clearAllPlacements()">清排刀</button>
+  <button class="btn btn-gray" onclick="clearAllPlacements()">重置排刀</button>
   <div class="vsep"></div>
   <span class="lock-info" id="lockInfo"></span>
   <input type="password" id="lockPwd" placeholder="指挥者口令" style="width:100px" onkeydown="if(event.key==='Enter')submitLockPassword()">
@@ -1231,7 +1231,7 @@ function clearBg() {
 
 function clearAllPlacements() {
   if (!isLockHolder) { alert('请先获取操作权限'); return; }
-  if (!confirm('确定清空所有区域的排刀记录？（成员名单保留）')) return;
+  if (!confirm('确定清空所有区域的排刀记录？（成员名单保留，所有人刀数重置为3）')) return;
   placements = { D: {}, E: {}, F: {} };
   // knivesLeft 重置为3（由导入流程统一处理，这里只清 placement）
   members.forEach(function(name) { knivesLeft[name] = 3; });
@@ -1405,6 +1405,7 @@ function exportData() {
 
 function importData() {
   if (!isLockHolder) { alert('请先获取操作权限'); return; }
+  if (!confirm('确定导入新名单？（将清空所有排刀记录，所有人刀数重置为3）')) return;
   var input = document.createElement('input');
   input.type = 'file';
   input.accept = '.json';
