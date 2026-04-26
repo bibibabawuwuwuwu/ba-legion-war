@@ -76,6 +76,41 @@ body { font-family: 'Microsoft YaHei', sans-serif; background: #0d1117; color: #
 .footer { padding: 10px 14px; border-top: 1px solid #21262d; }
 .footer button { width: 100%; padding: 8px; background: #21262d; color: #8b949e; border: 1px solid #30363d; border-radius: 6px; cursor: pointer; font-size: 12px; font-family: inherit; }
 .footer button:hover { background: #30363d; color: #e6edf3; }
+
+/* 操作锁 Banner */
+.lock-banner { background: #161b22; padding: 8px 20px; display: none; align-items: center; gap: 12px; border-bottom: 1px solid #30363d; font-size: 13px; }
+.lock-banner.active { display: flex; }
+.lock-banner .lock-icon { color: #2ea043; font-size: 16px; }
+.lock-banner .lock-text { color: #e6edf3; }
+.lock-banner .lock-name { color: #4fc3f7; font-weight: bold; }
+.lock-banner .lock-hint { color: #484f58; font-size: 12px; margin-left: auto; }
+.lock-banner .btn-release { background: #da3633; border: none; color: #fff; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-family: inherit; margin-left: 8px; }
+.lock-banner .btn-release:hover { background: #f85149; }
+.lock-banner .btn-acquire { background: #238636; border: none; color: #fff; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-family: inherit; margin-left: auto; }
+.lock-banner .btn-acquire:hover { background: #2ea043; }
+
+/* 锁弹窗 */
+.lock-modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; z-index: 1000; }
+.lock-modal.active { display: flex; }
+.lock-modal .modal-box { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 32px 40px; text-align: center; min-width: 320px; }
+.lock-modal h2 { color: #e6edf3; font-size: 18px; margin-bottom: 6px; }
+.lock-modal p { color: #484f58; font-size: 13px; margin-bottom: 20px; }
+.lock-modal input { background: #0d1117; border: 1px solid #30363d; color: #e6edf3; padding: 10px 14px; border-radius: 6px; font-size: 14px; font-family: inherit; width: 100%; box-sizing: border-box; margin-bottom: 16px; text-align: center; }
+.lock-modal input:focus { outline: none; border-color: #e94560; }
+.lock-modal .modal-btns { display: flex; gap: 10px; justify-content: center; }
+.lock-modal .btn-ok { background: #238636; border: none; color: #fff; padding: 8px 24px; border-radius: 6px; cursor: pointer; font-size: 14px; font-family: inherit; font-weight: bold; }
+.lock-modal .btn-ok:hover { background: #2ea043; }
+.lock-modal .btn-cancel { background: #21262d; color: #8b949e; border: 1px solid #30363d; padding: 8px 24px; border-radius: 6px; cursor: pointer; font-size: 14px; font-family: inherit; }
+.lock-modal .btn-cancel:hover { background: #30363d; color: #e6edf3; }
+.lock-modal .error-msg { color: #f85149; font-size: 12px; margin-top: 8px; min-height: 18px; }
+
+/* 成员 chip 非锁 holder 禁用态 */
+.member-chips.readonly .chip { cursor: not-allowed; opacity: 0.6; pointer-events: none; }
+.member-chips.readonly .chip .x { display: none; }
+
+/* 地图放置元素非锁 holder 禁用 */
+.map-container.readonly .placed { cursor: not-allowed; opacity: 0.7; }
+.map-container.readonly .placed .del { display: none !important; }
 </style>
 </head>
 <body>
@@ -88,6 +123,28 @@ body { font-family: 'Microsoft YaHei', sans-serif; background: #0d1117; color: #
     <button class="tab" data-area="F">F区</button>
   </div>
   <span class="hint">拖拽成员到地图上</span>
+</div>
+
+<!-- 操作锁 Banner -->
+<div class="lock-banner" id="lockBanner">
+  <span class="lock-icon">&#128274;</span>
+  <span class="lock-text">当前操作者：<span class="lock-name" id="lockOwnerName"></span></span>
+  <span class="lock-hint" id="lockHint"></span>
+  <button class="btn-release" id="btnReleaseLock" onclick="releaseLock()">释放操作权</button>
+  <button class="btn-acquire" id="btnAcquireLock" onclick="showLockModal()">申请操作权</button>
+</div>
+
+<div class="lock-modal" id="lockModal">
+  <div class="modal-box">
+    <h2>输入口令申请操作权限</h2>
+    <p>指挥者输入口令获取排刀操作权限</p>
+    <input type="password" id="lockPasswordInput" placeholder="输入口令 112233" onkeydown="if(event.key==='Enter')submitLockPassword()">
+    <div class="modal-btns">
+      <button class="btn-ok" onclick="submitLockPassword()">确认</button>
+      <button class="btn-cancel" onclick="hideLockModal()">取消</button>
+    </div>
+    <div class="error-msg" id="lockErrorMsg"></div>
+  </div>
 </div>
 
 <div class="toolbar">
@@ -143,7 +200,7 @@ body { font-family: 'Microsoft YaHei', sans-serif; background: #0d1117; color: #
 // Supabase 配置（公共 anon key，前端安全）
 // ═══════════════════════════════════════════
 const SUPABASE_URL = 'https://gtnodvesfqajnhnzzcyp.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0bm9kdmVzZnFham5obnp6Y3lwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU1MjQ5MDYsImV4cCI6MjA2MTEwMDkwNn0.Vk7bCXC9Q3p1VCJ9j1aw';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0bm9kdmVzZnFham5obnp6Y3lwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxMzYyMjMsImV4cCI6MjA5MjcxMjIyM30.pyxrplZ6O6FDOdCI8LCsltAiwI_JsF8H9oNSfEnj1aw';
 let supabase = null;
 let supabaseAvailable = false;
 const DB_ID = 'shared_state'; // 固定一条记录的 id
@@ -158,6 +215,22 @@ let placements = { D: {}, E: {}, F: {} };
 let bgImages = { D: null, E: null, F: null };
 let db = null;
 let supabaseSyncing = false; // 防止 realtime 回写触发死循环
+
+// ═══════════════════════════════════════════
+// 操作锁
+// ═══════════════════════════════════════════
+const OPERATOR_PASSWORD = '112233';
+const LOCK_LEASE_MS = 60 * 1000;         // 锁 lease 60 秒
+const LOCK_REFRESH_MS = 20 * 1000;       // 每 20 秒续一次
+const LOCK_ID = 'global_lock';
+
+let operatorId = null;                   // 本标签页的唯一 ID
+let operatorName = '';                   // 操作者昵称
+let isLockHolder = false;                 // 是否持有锁
+let leaseUntil = 0;                      // lease 到期时间戳（ms）
+let lockHeartbeatTimer = null;            // 心跳定时器
+let lockCheckTimer = null;                // 检查锁状态定时器（其他人用）
+let lockSyncing = false;                  // 防止 realtime 回写触发死循环
 
 const DB_NAME = 'ba_legion_db';
 const DB_VER = 1;
@@ -203,17 +276,18 @@ function idbPut(key, val) {
 }
 
 // ═══════════════════════════════════════════
-// 动态加载 Supabase SDK
+// 动态加载 Supabase SDK（ESM 方式）
 // ═══════════════════════════════════════════
-function loadSupabaseSDK() {
-  return new Promise(function(resolve) {
-    if (typeof window.supabase !== 'undefined') { resolve(); return; }
-    var s = document.createElement('script');
-    s.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js';
-    s.onload = function() { resolve(); };
-    s.onerror = function() { resolve(); }; // 加载失败也继续（本地模式）
-    document.head.appendChild(s);
-  });
+var _supabaseCreateClient = null;
+
+async function loadSupabaseSDK() {
+  if (_supabaseCreateClient) return;
+  try {
+    var mod = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+    _supabaseCreateClient = mod.createClient;
+  } catch(e) {
+    console.warn('Supabase SDK 加载失败', e);
+  }
 }
 
 async function initSupabase() {
@@ -222,8 +296,8 @@ async function initSupabase() {
 
   // 尝试初始化 Supabase 客户端
   try {
-    if (typeof window.supabase !== 'undefined' && window.supabase.createClient) {
-      supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    if (_supabaseCreateClient) {
+      supabase = _supabaseCreateClient(SUPABASE_URL, SUPABASE_KEY);
       supabaseAvailable = true;
     }
   } catch(e) { console.warn('Supabase 初始化失败', e); }
@@ -299,6 +373,35 @@ async function initSupabase() {
     });
     ref.subscribe();
 
+    // 操作锁实时订阅
+    var lockRef = supabase.channel('operator-lock-sync');
+    lockRef.on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'operator_lock',
+      filter: 'id=eq.' + LOCK_ID
+    }, function(payload) {
+      if (lockSyncing) return;
+      lockSyncing = true;
+      try {
+        if (payload.new) {
+          window._cachedLock = {
+            operator_id: payload.new.operator_id,
+            operator_name: payload.new.operator_name,
+            lease_until: payload.new.lease_until,
+            is_locked: payload.new.is_locked
+          };
+          fetchLockState();
+        }
+      } finally {
+        lockSyncing = false;
+      }
+    });
+    lockRef.subscribe();
+
+    // 初始化拉取锁状态
+    await fetchLockState();
+
     var resp = await supabase
       .from('placements')
       .select('*')
@@ -358,6 +461,15 @@ async function initSupabase() {
 }
 
 async function init() {
+  // 0. 生成/恢复本标签页的操作者 ID
+  try {
+    operatorId = localStorage.getItem('ba_operator_id');
+    if (!operatorId) {
+      operatorId = generateOperatorId();
+      localStorage.setItem('ba_operator_id', operatorId);
+    }
+  } catch(e) {}
+
   // 1. 本地：先从 IndexedDB 恢复背景图（不阻塞渲染）
   try {
     await openDB();
@@ -367,6 +479,16 @@ async function init() {
 
   // 2. 加载/连接 Supabase
   await initSupabase();
+
+  // 3. 初始化锁 UI
+  updateLockBanner();
+  updateDragEnabled();
+
+  // 4. 非锁持有者每 5 秒检查一次锁状态
+  lockCheckTimer = setInterval(function() {
+    if (!isLockHolder) fetchLockState();
+    else updateLockBanner(); // 更新剩余秒数
+  }, 5000);
 }
 
 function save() {
@@ -386,6 +508,201 @@ function save() {
     supabaseSyncing = false;
     console.warn('Supabase 保存失败', e);
   });
+}
+
+// ═══════════════════════════════════════════
+// 操作锁函数
+// ═══════════════════════════════════════════
+function generateOperatorId() {
+  return 'op_' + Math.random().toString(36).substring(2, 10) + '_' + Date.now();
+}
+
+function showLockModal() {
+  document.getElementById('lockModal').classList.add('active');
+  document.getElementById('lockPasswordInput').value = '';
+  document.getElementById('lockErrorMsg').textContent = '';
+  setTimeout(function() { document.getElementById('lockPasswordInput').focus(); }, 50);
+}
+
+function hideLockModal() {
+  document.getElementById('lockModal').classList.remove('active');
+}
+
+function submitLockPassword() {
+  var pwd = document.getElementById('lockPasswordInput').value.trim();
+  if (!pwd) return;
+  if (pwd !== OPERATOR_PASSWORD) {
+    document.getElementById('lockErrorMsg').textContent = '口令错误，请重新输入';
+    document.getElementById('lockPasswordInput').value = '';
+    return;
+  }
+  hideLockModal();
+  // 弹窗让用户输入昵称
+  var name = prompt('请输入你的昵称（用于显示操作者）：');
+  if (!name || !name.trim()) return;
+  operatorName = name.trim();
+  acquireLock();
+}
+
+async function acquireLock() {
+  if (!supabaseAvailable) { alert('Supabase 未连接，无法获取操作权'); return; }
+  try {
+    // 检查当前锁状态
+    var resp = await supabase
+      .from('operator_lock')
+      .select('*')
+      .eq('id', LOCK_ID)
+      .maybeSingle();
+    var now = Date.now();
+    var currentLock = resp && resp.data;
+    // 锁已被占用且未过期，且不是自己
+    if (currentLock && currentLock.lease_until > now && currentLock.operator_id !== operatorId) {
+      var remaining = Math.ceil((currentLock.lease_until - now) / 1000);
+      alert('操作权已被 ' + (currentLock.operator_name || '其他人') + ' 占用（剩余 ' + remaining + ' 秒），请稍后再试');
+      return;
+    }
+    // 获取/设置操作者昵称
+    if (!operatorName) {
+      var name = prompt('请输入你的昵称（用于显示操作者）：');
+      if (!name || !name.trim()) return;
+      operatorName = name.trim();
+    }
+    // 如果还没有 operatorId，先生成
+    if (!operatorId) operatorId = generateOperatorId();
+    // 设置 lease
+    leaseUntil = now + LOCK_LEASE_MS;
+    await supabase.from('operator_lock').upsert({
+      id: LOCK_ID,
+      operator_id: operatorId,
+      operator_name: operatorName,
+      lease_until: leaseUntil,
+      is_locked: true
+    });
+    isLockHolder = true;
+    startLockHeartbeat();
+    updateLockBanner();
+    updateDragEnabled();
+  } catch(e) { console.warn('获取操作权失败', e); }
+}
+
+async function releaseLock() {
+  if (!isLockHolder) return;
+  isLockHolder = false;
+  stopLockHeartbeat();
+  if (supabaseAvailable) {
+    try {
+      await supabase.from('operator_lock').upsert({
+        id: LOCK_ID,
+        operator_id: '',
+        operator_name: '',
+        lease_until: 0,
+        is_locked: false
+      });
+    } catch(e) {}
+  }
+  updateLockBanner();
+  updateDragEnabled();
+}
+
+async function refreshLock() {
+  if (!isLockHolder || !supabaseAvailable) return;
+  try {
+    leaseUntil = Date.now() + LOCK_LEASE_MS;
+    await supabase.from('operator_lock').upsert({
+      id: LOCK_ID,
+      lease_until: leaseUntil,
+      is_locked: true
+    });
+    updateLockBanner();
+  } catch(e) { console.warn('续lease失败', e); }
+}
+
+async function fetchLockState() {
+  if (!supabaseAvailable) return;
+  try {
+    var resp = await supabase
+      .from('operator_lock')
+      .select('*')
+      .eq('id', LOCK_ID)
+      .maybeSingle();
+    if (!resp || !resp.data) return;
+    var lock = resp.data;
+    var now = Date.now();
+    var expired = !lock.is_locked || lock.lease_until <= now;
+    if (expired && isLockHolder) {
+      // 自己的 lease 过期了
+      isLockHolder = false;
+      stopLockHeartbeat();
+    }
+    if (!expired && lock.operator_id === operatorId) {
+      // 确认自己是 holder
+      isLockHolder = true;
+      leaseUntil = lock.lease_until;
+      startLockHeartbeat();
+    }
+    updateLockBanner();
+    updateDragEnabled();
+  } catch(e) {}
+}
+
+function startLockHeartbeat() {
+  stopLockHeartbeat();
+  // 每 20 秒续一次 lease
+  lockHeartbeatTimer = setInterval(refreshLock, LOCK_REFRESH_MS);
+}
+
+function stopLockHeartbeat() {
+  if (lockHeartbeatTimer) {
+    clearInterval(lockHeartbeatTimer);
+    lockHeartbeatTimer = null;
+  }
+}
+
+function updateLockBanner() {
+  var banner = document.getElementById('lockBanner');
+  var ownerName = document.getElementById('lockOwnerName');
+  var hint = document.getElementById('lockHint');
+  var btnRelease = document.getElementById('btnReleaseLock');
+  var btnAcquire = document.getElementById('btnAcquireLock');
+  if (!banner) return;
+  if (!supabaseAvailable) {
+    banner.classList.remove('active');
+    return;
+  }
+  banner.classList.add('active');
+  if (isLockHolder) {
+    ownerName.textContent = operatorName + '（你）';
+    var remaining = Math.max(0, Math.ceil((leaseUntil - Date.now()) / 1000));
+    hint.textContent = '剩余 ' + remaining + ' 秒';
+    btnRelease.style.display = '';
+    btnAcquire.style.display = 'none';
+  } else {
+    // 检查是否有其他锁持有者
+    var resp = window._cachedLock;
+    if (resp && resp.is_locked && resp.lease_until > Date.now()) {
+      ownerName.textContent = resp.operator_name || '未知';
+      var remaining = Math.ceil((resp.lease_until - Date.now()) / 1000);
+      hint.textContent = '剩余 ' + remaining + ' 秒';
+    } else {
+      ownerName.textContent = '（无人）';
+      hint.textContent = '暂无操作者';
+    }
+    btnRelease.style.display = 'none';
+    btnAcquire.style.display = '';
+  }
+}
+
+function updateDragEnabled() {
+  var chips = document.getElementById('memberChips');
+  var mapContainer = document.getElementById('mapContainer');
+  if (!chips || !mapContainer) return;
+  if (isLockHolder) {
+    chips.classList.remove('readonly');
+    mapContainer.classList.remove('readonly');
+  } else {
+    chips.classList.add('readonly');
+    mapContainer.classList.add('readonly');
+  }
 }
 
 // ═══════════════════════════════════════════
@@ -568,6 +885,7 @@ function clearBg() {
 // 成员管理
 // ═══════════════════════════════════════════
 function addMember() {
+  if (!isLockHolder) { alert('请先获取操作权限'); return; }
   var input = document.getElementById('memberInput');
   var name = input.value.trim();
   if (!name) return;
@@ -580,6 +898,7 @@ function addMember() {
 }
 
 function removeMember(name) {
+  if (!isLockHolder) { alert('请先获取操作权限'); return; }
   members = members.filter(function(m) { return m !== name; });
   ['D','E','F'].forEach(function(z) {
     if (placements[z]) delete placements[z][name];
@@ -600,6 +919,10 @@ mapPanel.addEventListener('dragover', function(e) {
 });
 mapPanel.addEventListener('drop', function(e) {
   e.preventDefault();
+  if (!isLockHolder) {
+    alert('请先获取操作权限再进行排刀操作');
+    return;
+  }
   var name = e.dataTransfer.getData('text/plain');
   if (!name || members.indexOf(name) < 0) return;
 
@@ -653,6 +976,7 @@ function removePlacement(name, knifeIndex) {
 }
 
 function clearCurrentZone() {
+  if (!isLockHolder) { alert('请先获取操作权限'); return; }
   if (!confirm('确定清空 ' + currentArea + ' 区所有出刀安排？')) return;
   placements[currentArea] = {};
   save();
@@ -701,6 +1025,7 @@ function exportData() {
 }
 
 function importData() {
+  if (!isLockHolder) { alert('请先获取操作权限'); return; }
   var input = document.createElement('input');
   input.type = 'file';
   input.accept = '.json';
