@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>娞娞研究所-军团战排刀台</title>
+<title>餒餒研究所-军团战排刀台</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 body { font-family: 'Microsoft YaHei', sans-serif; font-size: 14px; background: #0d1117; color: #e6edf3; min-height: 100vh; overflow: hidden; }
@@ -34,6 +34,7 @@ body { font-family: 'Microsoft YaHei', sans-serif; font-size: 14px; background: 
 .btn-gray { background: #21262d; color: #8b949e; border: 1px solid #30363d; }
 .btn-gray:hover { background: #30363d; color: #e6edf3; }
 .lock-info { color: #484f58; font-size: 11px; white-space: nowrap; }
+.version-info { color: #484f58; font-size: 11px; white-space: nowrap; }
 .lock-info.active { color: #2ea043; }
 .lock-info .lock-name { color: #4fc3f7; font-weight: bold; }
 
@@ -256,7 +257,7 @@ body { font-family: 'Microsoft YaHei', sans-serif; font-size: 14px; background: 
 <body>
 
 <div class="topbar">
-  <h1>娞娞研究所-军团战排刀台</h1>
+  <h1>餒餒研究所-军团战排刀台</h1>
   <div class="tabs">
     <button class="tab active" data-area="D">D区</button>
     <button class="tab" data-area="E">E区</button>
@@ -269,6 +270,7 @@ body { font-family: 'Microsoft YaHei', sans-serif; font-size: 14px; background: 
   <button class="btn btn-gray" onclick="clearBg()">清背景</button>
   <button class="btn btn-gray" onclick="clearAllPlacements()">重置排刀</button>
   <div class="vsep"></div>
+  <span class="version-info" id="versionInfo">v1.0.0</span>
   <span class="lock-info" id="lockInfo"></span>
   <button class="btn" id="btnLock" onclick="showLockModal()">申请操作权</button>
   <button class="btn btn-red" id="btnRelease" style="display:none" onclick="releaseLock()">释放操作权</button>
@@ -351,6 +353,7 @@ let knivesLeft = {};
 let bgImages = { D: null, E: null, F: null };
 let db = null;
 let supabaseSyncing = false; // 防止 realtime 回写触发死循环
+let saveVersion = 1; // 版本号，每次 save 成功 +1
 let dbReady = false; // 数据未就绪前禁止渲染，防止订阅回调抢先渲染空数据
 // 拖拽状态：记录当前拖拽的源成员/刀序号，和最后记录的鼠标坐标
 let _dragSrcName = null;
@@ -759,6 +762,8 @@ function save() {
     data: { members: members, placements: placements, knivesLeft: knivesLeft, bgImages: bgImagesForSave }
   }).then(function() {
     supabaseSyncing = false;
+    saveVersion++;
+    document.getElementById('versionInfo').textContent = 'v' + saveVersion;
   }).catch(function(e) {
     supabaseSyncing = false;
     console.warn('Supabase 保存失败', e);
