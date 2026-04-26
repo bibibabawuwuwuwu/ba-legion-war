@@ -740,7 +740,13 @@ function save() {
   idbPut('bgImages', bgImages).catch(function(e) { console.warn('IndexedDB 保存失败', e); });
 
   // 成员+出刀记录+背景图同步到 Supabase（所有人共享）
-  if (!supabaseAvailable || supabaseSyncing) return;
+  if (!supabaseAvailable) return;
+  // 防卡死：超过 5s 没返回就强制重置锁
+  if (supabaseSyncing) {
+    console.warn('上次保存未完成，稍后重试');
+    setTimeout(save, 2000);
+    return;
+  }
   supabaseSyncing = true;
   supabase.from('placements').upsert({
     id: DB_ID,
@@ -751,6 +757,7 @@ function save() {
   }).catch(function(e) {
     supabaseSyncing = false;
     console.warn('Supabase 保存失败', e);
+    alert('Supabase 保存失败: ' + (e.message || e.code || '未知错误'));
   });
 }
 
