@@ -56,20 +56,22 @@ body { font-family: 'Microsoft YaHei', sans-serif; font-size: 14px; background: 
 
 /* 移动端横屏：面板改百分比宽度，地图等比缩放 */
 @media (max-height: 500px) {
-  .main { flex-direction: row; height: calc(100vh - 44px); }
-  .member-panel { width: 28vw !important; min-width: 0; flex-shrink: 0; }
-  .side-panel { width: 28vw !important; min-width: 0; flex-shrink: 0; }
-  .map-panel { flex: 1; min-width: 0; }
+  html, body { height: 100%; overflow: hidden; }
+  .main { flex-direction: row; height: 100%; overflow: hidden; }
+  .member-panel { width: 22vw !important; min-width: 0; max-width: 22vw; flex-shrink: 0; overflow: hidden; }
+  .side-panel { width: 22vw !important; min-width: 0; max-width: 22vw; flex-shrink: 0; overflow: hidden; }
+  .map-panel { flex: 1 1 auto; min-width: 0; overflow: hidden; }
   .map-container { width: 100%; height: 100%; }
   .map-container img.bg { width: 100%; height: 100%; object-fit: contain; }
 }
 
 /* 移动端竖屏：侧面板收紧，地图占满剩余宽度 */
 @media (max-width: 600px) {
-  .main { flex-direction: row; height: calc(100vh - 44px); }
-  .member-panel { width: 120px !important; min-width: 0; flex-shrink: 0; }
-  .side-panel { width: 90px !important; min-width: 0; flex-shrink: 0; }
-  .map-panel { flex: 1; min-width: 0; }
+  html, body { height: 100%; overflow: hidden; }
+  .main { flex-direction: row; height: 100%; overflow: hidden; }
+  .member-panel { width: 100px !important; min-width: 0; max-width: 100px; flex-shrink: 0; overflow: hidden; }
+  .side-panel { width: 70px !important; min-width: 0; max-width: 70px; flex-shrink: 0; overflow: hidden; }
+  .map-panel { flex: 1 1 auto; min-width: 0; overflow: hidden; }
   .map-container { width: 100%; height: 100%; }
   .map-container img.bg { width: 100%; height: 100%; object-fit: contain; }
 }
