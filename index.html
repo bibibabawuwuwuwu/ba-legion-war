@@ -483,28 +483,46 @@ async function initSupabase() {
       supabaseSyncing = true;
       try {
         if (payload.new && payload.new.data) {
-          if (payload.new.data.members) {
+          var dataChanged = false;
+          if (payload.new.data.members && JSON.stringify(members) !== JSON.stringify(payload.new.data.members)) {
             members = payload.new.data.members;
+            dataChanged = true;
           }
           if (payload.new.data.placements) {
-            // 迁移旧格式
+            var newP = payload.new.data.placements;
             ['D','E','F'].forEach(function(z) {
-              if (!payload.new.data.placements[z]) return;
-              Object.keys(payload.new.data.placements[z]).forEach(function(name) {
-                var val = payload.new.data.placements[z][name];
-                if (!Array.isArray(val)) {
-                  payload.new.data.placements[z][name] = [val];
-                }
+              if (!newP[z]) newP[z] = {};
+              Object.keys(newP[z]).forEach(function(name) {
+                if (!Array.isArray(newP[z][name])) newP[z][name] = [newP[z][name]];
               });
             });
-            placements = payload.new.data.placements;
+            if (JSON.stringify(placements) !== JSON.stringify(newP)) {
+              placements = newP;
+              dataChanged = true;
+            }
           }
           if (payload.new.data.bgImages) {
             bgImages = payload.new.data.bgImages;
             idbPut('bgImages', bgImages);
+            dataChanged = true;
           }
+          // knivesLeft 必须单独处理：不存在时从 placements 推算（不清空已有值）
+          if (payload.new.data.knivesLeft) {
+            if (JSON.stringify(knivesLeft) !== JSON.stringify(payload.new.data.knivesLeft)) {
+              knivesLeft = payload.new.data.knivesLeft;
+              dataChanged = true;
+            }
+          } else {
+            // 没有 knivesLeft 时，用 placements 推算
+            (payload.new.data.members || members || []).forEach(function(name) {
+              var done = 0;
+              ['D','E','F'].forEach(function(z) { done += (placements[z] && placements[z][name] ? placements[z][name].length : 0); });
+              knivesLeft[name] = Math.max(0, 3 - done);
+            });
+            dataChanged = true;
+          }
+          if (dataChanged) render();
         }
-        render();
       } finally {
         supabaseSyncing = false;
       }
@@ -1442,7 +1460,7 @@ function escapeHtml(str) {
 // ═══════════════════════════════════════════
 // 启动
 // ═══════════════════════════════════════════
-init().then(render);
+init().then(render); // initSupabase 内部已有一次 render，这里确保 init 完成后渲染一次
 </script>
 </body>
 </html>
