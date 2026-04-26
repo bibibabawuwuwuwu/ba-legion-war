@@ -748,13 +748,14 @@ function save() {
     return;
   }
   supabaseSyncing = true;
-  console.log('[DEBUG save] upserting bgImages D:', bgImages.D?.substring(0,50), 'E:', bgImages.E ? bgImages.E.substring(0,50) : bgImages.E, 'F:', bgImages.F);
+  console.log('[DEBUG save] upserting bgImages:', JSON.stringify(bgImages));
   supabase.from('placements').upsert({
     id: DB_ID,
     zone: 'shared',
     data: { members: members, placements: placements, knivesLeft: knivesLeft, bgImages: bgImages }
   }).then(function() {
     supabaseSyncing = false;
+    console.log('[DEBUG save] upsert SUCCESS, bgImages now:', JSON.stringify(bgImages));
   }).catch(function(e) {
     supabaseSyncing = false;
     console.warn('Supabase 保存失败', e);
