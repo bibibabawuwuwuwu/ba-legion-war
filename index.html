@@ -107,12 +107,20 @@ body { font-family: 'Microsoft YaHei', sans-serif; font-size: 14px; background: 
   .map-container img.bg { width: 100%; height: 100%; object-fit: contain; }
 }
 
-/* 移动端竖屏：侧面板收紧，地图占满剩余宽度 */
-@media (max-width: 600px) {
+/* 横屏手机：侧面板更窄，给地图更多空间 */
+@media (max-width: 768px) and (orientation: landscape) {
+  .member-panel { width: 18vw !important; min-width: 50px; max-width: 100px; flex-shrink: 0; overflow: hidden; }
+  .side-panel { width: 14vw !important; min-width: 40px; max-width: 80px; flex-shrink: 0; overflow: hidden; }
+  .map-panel { flex: 1 1 auto; min-width: 0; overflow: hidden; }
+  .map-container { width: 100%; height: 100%; }
+}
+
+/* 移动端竖屏：侧面板按比例缩放，与桌面保持一致 */
+@media (max-width: 768px) and (orientation: portrait) {
   html, body { height: 100%; overflow: hidden; }
   .main { flex-direction: row; height: 100%; overflow: hidden; }
-  .member-panel { width: 100px !important; min-width: 0; max-width: 100px; flex-shrink: 0; overflow: hidden; }
-  .side-panel { width: 70px !important; min-width: 0; max-width: 70px; flex-shrink: 0; overflow: hidden; }
+  .member-panel { width: 22vw !important; min-width: 60px; max-width: 120px; flex-shrink: 0; overflow: hidden; }
+  .side-panel { width: 18vw !important; min-width: 50px; max-width: 90px; flex-shrink: 0; overflow: hidden; }
   .map-panel { flex: 1 1 auto; min-width: 0; overflow: hidden; }
   .map-container { width: 100%; height: 100%; }
   .map-container img.bg { width: 100%; height: 100%; object-fit: contain; }
@@ -311,7 +319,7 @@ body { font-family: 'Microsoft YaHei', sans-serif; font-size: 14px; background: 
   <button class="btn btn-gray" onclick="clearBg()">清背景</button>
   <button class="btn btn-gray" onclick="clearAllPlacements()">重置排刀</button>
   <div class="vsep"></div>
-  <span class="version-info" id="versionInfo">v1.0.5</span>
+  <span class="version-info" id="versionInfo">v1.0.6</span>
   <span class="lock-info" id="lockInfo"></span>
   <button class="btn" id="btnLock" onclick="showLockModal()">申请操作权</button>
   <button class="btn btn-red" id="btnRelease" style="display:none" onclick="releaseLock()">释放操作权</button>
