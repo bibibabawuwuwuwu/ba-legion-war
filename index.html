@@ -270,7 +270,7 @@ body { font-family: 'Microsoft YaHei', sans-serif; font-size: 14px; background: 
   <button class="btn btn-gray" onclick="clearBg()">清背景</button>
   <button class="btn btn-gray" onclick="clearAllPlacements()">重置排刀</button>
   <div class="vsep"></div>
-  <span class="version-info" id="versionInfo">v1.0.2</span>
+  <span class="version-info" id="versionInfo">v1.0.3</span>
   <span class="lock-info" id="lockInfo"></span>
   <button class="btn" id="btnLock" onclick="showLockModal()">申请操作权</button>
   <button class="btn btn-red" id="btnRelease" style="display:none" onclick="releaseLock()">释放操作权</button>
@@ -539,10 +539,9 @@ async function initSupabase() {
           });
           placements = p;
         }
-        if (resp.data.data.bgImages) {
-          bgImages = migrateBgImages(resp.data.data.bgImages);
-          idbPut('bgImages', bgImages);
-        }
+        // bgImages：以 Supabase 为准（跨设备同步源），本地只作缓存加速首次加载
+        bgImages = migrateBgImages(resp.data.data.bgImages || { D: null, E: null, F: null });
+        idbPut('bgImages', bgImages);
         // knivesLeft：本地优先，Supabase 只补充本地没有的名字
         if (resp.data.data.knivesLeft) {
           var supabaseKl = resp.data.data.knivesLeft;
@@ -600,7 +599,13 @@ async function initSupabase() {
             }
           }
           if (payload.new.data.bgImages) {
+            // Supabase 主动发了 bgImages（哪怕是 null）：直接用，迁移哨兵值
             bgImages = migrateBgImages(payload.new.data.bgImages);
+            idbPut('bgImages', bgImages);
+            dataChanged = true;
+          } else {
+            // Supabase 把 bgImages 字段写成 null（其他设备清空背景）：同步到本地
+            bgImages = { D: null, E: null, F: null };
             idbPut('bgImages', bgImages);
             dataChanged = true;
           }
