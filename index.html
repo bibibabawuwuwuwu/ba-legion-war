@@ -270,7 +270,7 @@ body { font-family: 'Microsoft YaHei', sans-serif; font-size: 14px; background: 
   <button class="btn btn-gray" onclick="clearBg()">清背景</button>
   <button class="btn btn-gray" onclick="clearAllPlacements()">重置排刀</button>
   <div class="vsep"></div>
-  <span class="version-info" id="versionInfo">v1.0.3</span>
+  <span class="version-info" id="versionInfo">v1.0.4-debug</span>
   <span class="lock-info" id="lockInfo"></span>
   <button class="btn" id="btnLock" onclick="showLockModal()">申请操作权</button>
   <button class="btn btn-red" id="btnRelease" style="display:none" onclick="releaseLock()">释放操作权</button>
@@ -542,6 +542,7 @@ async function initSupabase() {
         // bgImages：以 Supabase 为准（跨设备同步源），本地只作缓存加速首次加载
         bgImages = migrateBgImages(resp.data.data.bgImages || { D: null, E: null, F: null });
         idbPut('bgImages', bgImages);
+        console.log('[DEBUG fetch cb] bgImages set to:', JSON.stringify(bgImages));
         // knivesLeft：本地优先，Supabase 只补充本地没有的名字
         if (resp.data.data.knivesLeft) {
           var supabaseKl = resp.data.data.knivesLeft;
@@ -602,11 +603,13 @@ async function initSupabase() {
             // Supabase 主动发了 bgImages（哪怕是 null）：直接用，迁移哨兵值
             bgImages = migrateBgImages(payload.new.data.bgImages);
             idbPut('bgImages', bgImages);
+            console.log('[DEBUG subscription] bgImages updated to:', JSON.stringify(bgImages));
             dataChanged = true;
           } else {
             // Supabase 把 bgImages 字段写成 null（其他设备清空背景）：同步到本地
             bgImages = { D: null, E: null, F: null };
             idbPut('bgImages', bgImages);
+            console.log('[DEBUG subscription] bgImages set to null (else branch)');
             dataChanged = true;
           }
           if (payload.new.data.knivesLeft) {
@@ -694,6 +697,7 @@ async function initSupabase() {
         members = d.members;
       }
       if (d.bgImages) {
+        console.log('[DEBUG fallback] localStorage has bgImages, overwriting. was:', JSON.stringify(bgImages), '-> now:', JSON.stringify(migrateBgImages(d.bgImages)));
         bgImages = migrateBgImages(d.bgImages);
         idbPut('bgImages', bgImages);
       }
@@ -1161,6 +1165,7 @@ function renderMap() {
   if (noBgText1) noBgText1.textContent = '当前 ' + currentArea + ' 区还没有设置背景图';
   if (uploadLabel) uploadLabel.childNodes[0].textContent = '上传 ' + currentArea + ' 区背景图 ';
 
+  console.log('[DEBUG renderMap] currentArea:', currentArea, 'bgImages[currentArea]:', bgImages[currentArea] ? 'has_value' : 'null/falsy', 'full_bgImages:', JSON.stringify(bgImages));
   // 已清空的区域（null）不显示背景
   if (bgImages[currentArea]) {
     document.getElementById('mapBg').src = bgImages[currentArea];
@@ -1484,7 +1489,9 @@ document.querySelectorAll('.tab').forEach(function(btn) {
   btn.addEventListener('click', function() {
     document.querySelectorAll('.tab').forEach(function(b) { b.classList.remove('active'); });
     btn.classList.add('active');
-    currentArea = btn.getAttribute('data-area');
+    var newArea = btn.getAttribute('data-area');
+    console.log('[DEBUG tab click] switching from', currentArea, 'to', newArea, '| bgImages[D]:', bgImages['D'] ? 'has_value' : 'null');
+    currentArea = newArea;
     render();
   });
 });
