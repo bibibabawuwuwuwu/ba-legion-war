@@ -111,6 +111,8 @@ body { font-family: 'Microsoft YaHei', sans-serif; font-size: 14px; background: 
   .map-panel { flex: 1; min-width: 0; overflow: hidden; display: flex; flex-direction: column; }
   .map-container { flex: 1; min-height: 0; overflow: hidden; }
   .map-container img.bg { width: 100%; height: 100%; object-fit: contain; }
+  .member-panel h3, .side-panel h3 { white-space: nowrap; font-size: 9px !important; padding: 4px 6px !important; }
+  .member-panel h3 span, .side-panel h3 span { font-size: 8px !important; }
 }
 
 /* 移动端竖屏：侧面板按比例缩放，与桌面保持一致 */
@@ -313,7 +315,7 @@ body { font-family: 'Microsoft YaHei', sans-serif; font-size: 14px; background: 
   <button class="btn btn-gray" onclick="location.reload()">刷新</button>
   <button class="btn btn-gray" onclick="clearAllPlacements()">重置排刀</button>
   <div class="vsep"></div>
-  <span class="version-info" id="versionInfo">v1.1.7</span>
+  <span class="version-info" id="versionInfo">v1.1.8</span>
   <span class="lock-info" id="lockInfo"></span>
   <button class="btn" id="btnLock" onclick="showLockModal()">申请操作权</button>
   <button class="btn btn-red" id="btnRelease" style="display:none" onclick="releaseLock()">释放操作权</button>
