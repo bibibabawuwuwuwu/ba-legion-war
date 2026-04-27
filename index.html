@@ -1136,13 +1136,8 @@ function renderChips() {
     chip.className = 'chip';
     chip.draggable = true;
     chip.dataset.name = name;
-    // 双击：快捷消耗1刀
-    chip.addEventListener('dblclick', function(e) {
-      e.stopPropagation();
-      spendKnivesQuick(name, 1);
-    });
-    // 右键：显示快捷菜单
-    chip.addEventListener('contextmenu', function(e) {
+    // 左键：显示快捷菜单
+    chip.addEventListener('click', function(e) {
       e.stopPropagation();
       showCtxMenu(e, name);
     });
@@ -1160,20 +1155,12 @@ function renderChips() {
       if (i < left) {
         // 未用刀：绿色亮
         cell.title = '标记' + (i + 1) + '刀已完成';
-        (function(idx, left, name) {
+        (function(idx, name) {
           cell.addEventListener('click', function(e) {
             e.stopPropagation();
-            if (!isLockHolder) { alert('请先获取操作权限'); return; }
-            var now = Date.now();
-            if (now - lastSpendTime < 300) return;
-            lastSpendTime = now;
-            // 点击绿色格：仅标记已用，不上地图
-            knivesLeft[name] = Math.max(0, left - 1);
-            save();
-            renderChips();
-            renderCompleted();
+            spendKnivesQuick(name, 1);
           });
-        })(i, left, name);
+        })(i, name);
       } else {
         cell.classList.add('used');
       }
@@ -1336,13 +1323,8 @@ function renderCompleted() {
 
     var chip = document.createElement('div');
     chip.className = 'done-chip';
-    // 双击：撤回1刀
-    chip.addEventListener('dblclick', function(e) {
-      e.stopPropagation();
-      refundKnives(name, 1);
-    });
-    // 右键：显示撤回菜单
-    chip.addEventListener('contextmenu', function(e) {
+    // 左键：显示撤回菜单
+    chip.addEventListener('click', function(e) {
       e.stopPropagation();
       showUndoMenu(e, name);
     });
