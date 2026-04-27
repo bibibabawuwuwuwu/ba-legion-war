@@ -270,7 +270,7 @@ body { font-family: 'Microsoft YaHei', sans-serif; font-size: 14px; background: 
   <button class="btn btn-gray" onclick="clearBg()">清背景</button>
   <button class="btn btn-gray" onclick="clearAllPlacements()">重置排刀</button>
   <div class="vsep"></div>
-  <span class="version-info" id="versionInfo">v1.0.0</span>
+  <span class="version-info" id="versionInfo">v1.0.1</span>
   <span class="lock-info" id="lockInfo"></span>
   <button class="btn" id="btnLock" onclick="showLockModal()">申请操作权</button>
   <button class="btn btn-red" id="btnRelease" style="display:none" onclick="releaseLock()">释放操作权</button>
@@ -532,16 +532,8 @@ async function initSupabase() {
           placements = p;
         }
         if (resp.data.data.bgImages) {
-          var supabaseBg = resp.data.data.bgImages;
-          var changed = false;
-          ['D','E','F'].forEach(function(z) {
-            // 始终信任 Supabase 数据（哪怕是 null），因为是跨设备共享的源
-            if (supabaseBg[z] !== undefined && bgImages[z] !== supabaseBg[z]) {
-              bgImages[z] = supabaseBg[z] === null ? '__cleared__' : supabaseBg[z];
-              changed = true;
-            }
-          });
-          if (changed) idbPut('bgImages', bgImages);
+          bgImages = resp.data.data.bgImages;
+          idbPut('bgImages', bgImages);
         }
         // knivesLeft：本地优先，Supabase 只补充本地没有的名字
         if (resp.data.data.knivesLeft) {
@@ -600,20 +592,9 @@ async function initSupabase() {
             }
           }
           if (payload.new.data.bgImages) {
-            // 订阅回调：其他设备清背景时 null 值也要同步写入
-            var supabaseBg = payload.new.data.bgImages;
-            var changed = false;
-            ['D','E','F'].forEach(function(z) {
-              // supabase 有明确值（非 undefined）就写入，不管本地原来是什么
-              if (supabaseBg[z] !== undefined && bgImages[z] !== supabaseBg[z]) {
-                bgImages[z] = supabaseBg[z] === null ? '__cleared__' : supabaseBg[z];
-                changed = true;
-              }
-            });
-            if (changed) {
-              idbPut('bgImages', bgImages);
-              dataChanged = true;
-            }
+            bgImages = payload.new.data.bgImages;
+            idbPut('bgImages', bgImages);
+            dataChanged = true;
           }
           if (payload.new.data.knivesLeft) {
             if (JSON.stringify(knivesLeft) !== JSON.stringify(payload.new.data.knivesLeft)) {
@@ -750,10 +731,10 @@ function save() {
     setTimeout(save, 2000);
     return;
   }
-  // 转换：'__cleared__' 哨兵值存为 null（Supabase 用 null 表示无背景）
+  // 转换：null 值直接写入 Supabase（表示无背景）
   var bgImagesForSave = {};
   ['D','E','F'].forEach(function(z) {
-    bgImagesForSave[z] = bgImages[z] === '__cleared__' ? null : (bgImages[z] || null);
+    bgImagesForSave[z] = bgImages[z] || null;
   });
   supabaseSyncing = true;
   supabase.from('placements').upsert({
@@ -874,7 +855,13 @@ async function refreshLock() {
       is_locked: true
     });
     updateLockBanner();
-  } catch(e) { console.warn('续lease失败', e); }
+  } catch(e) {
+    console.warn('续lease失败，重新同步锁状态', e);
+    // 网络错误/写入失败：重新拉取服务器状态，防止本地 hold 状态与服务器不一致
+    stopLockHeartbeat();
+    await fetchLockState();
+    if (isLockHolder) startLockHeartbeat();
+  }
 }
 
 async function fetchLockState() {
@@ -1161,17 +1148,8 @@ function renderMap() {
   if (noBgText1) noBgText1.textContent = '当前 ' + currentArea + ' 区还没有设置背景图';
   if (uploadLabel) uploadLabel.childNodes[0].textContent = '上传 ' + currentArea + ' 区背景图 ';
 
-  // 兜底：从 IndexedDB 再读一次 bgImages，防止 init 顺序导致全局变量为空
-  (function _restoreBg() {
-    if (!_idbCache || !_idbCache['bgImages']) return;
-    var cached = _idbCache['bgImages'];
-    if (cached && cached[currentArea] && bgImages[currentArea] === undefined) {
-      bgImages[currentArea] = cached[currentArea];
-    }
-  })();
-
-  // 已清空的区域不显示背景
-  if (bgImages[currentArea] && bgImages[currentArea] !== '__cleared__') {
+  // 已清空的区域（null）不显示背景
+  if (bgImages[currentArea]) {
     document.getElementById('mapBg').src = bgImages[currentArea];
     document.getElementById('mapBg').style.display = 'block';
     noBg.style.display = 'none';
@@ -1334,13 +1312,13 @@ var renderRecords = renderCompleted;
 
 function clearBg() {
   if (!isLockHolder) { alert('请先获取操作权限'); return; }
-  if (!bgImages[currentArea] || bgImages[currentArea] === '__cleared__') {
+  if (!bgImages[currentArea]) {
     alert('当前区域没有背景图');
     return;
   }
   if (!confirm('确定清除 ' + currentArea + ' 区背景图？（' + Math.round((bgImages[currentArea]||'').length / 1024) + ' KB）')) return;
-  bgImages[currentArea] = '__cleared__';
-  // 等待 IndexedDB 写完再渲染和保存（避免切换tab时_renderMap读到旧缓存）
+  bgImages[currentArea] = null;
+  // 等待 IndexedDB 写完再渲染和保存
   idbPut('bgImages', bgImages).then(function() {
     save();
     renderMap();
