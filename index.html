@@ -159,9 +159,6 @@ body { font-family: 'Microsoft YaHei', sans-serif; font-size: 14px; background: 
 .record-item .member { color: #4fc3f7; font-size: 13px; font-weight: bold; }
 .record-item .pos { font-size: 11px; color: #484f58; margin-top: 2px; }
 .empty-msg { color: #484f58; font-size: 12px; text-align: center; padding: 20px 0; line-height: 1.8; }
-.footer { padding: 10px 14px; border-top: 1px solid #21262d; }
-.footer button { width: 100%; padding: 8px; background: #21262d; color: #8b949e; border: 1px solid #30363d; border-radius: 6px; cursor: pointer; font-size: 12px; font-family: inherit; }
-.footer button:hover { background: #30363d; color: #e6edf3; }
 
 /* 操作锁 Banner */
 .lock-banner { background: #161b22; padding: 5px 16px; display: none; align-items: center; gap: 12px; border-bottom: 1px solid #30363d; font-size: 12px; }
@@ -282,14 +279,9 @@ body { font-family: 'Microsoft YaHei', sans-serif; font-size: 14px; background: 
 .side-panel h3 span { font-size: 10px; color: #e94560; }
 .record-list { flex: 1; overflow-y: auto; padding: 8px 14px; display: flex; flex-wrap: wrap; gap: 6px; align-content: flex-start; }
 .empty-msg { color: #484f58; font-size: 12px; text-align: center; padding: 12px 0; line-height: 1.8; }
-.footer { padding: 8px 14px; border-top: 1px solid #21262d; }
 .record-item .bar { height: 4px; background: #21262d; border-radius: 2px; margin-top: 4px; overflow: hidden; }
 .record-item .bar-fill { height: 100%; background: #238636; border-radius: 2px; transition: width 0.3s; }
 .record-item .bar-label { font-size: 10px; color: #484f58; margin-top: 2px; }
-.empty-msg { color: #484f58; font-size: 12px; text-align: center; padding: 20px 0; line-height: 1.8; }
-.footer { padding: 10px 14px; border-top: 1px solid #21262d; }
-.footer button { width: 100%; padding: 8px; background: #21262d; color: #8b949e; border: 1px solid #30363d; border-radius: 6px; cursor: pointer; font-size: 12px; font-family: inherit; }
-.footer button:hover { background: #30363d; color: #e6edf3; }
 /* 右键快捷菜单 */
 #ctxMenu { position: fixed; background: #1c2128; border: 1px solid #30363d; border-radius: 8px; padding: 4px 0; z-index: 9999; display: none; box-shadow: 0 8px 24px rgba(0,0,0,0.4); min-width: 130px; }
 #ctxMenu .ctx-item { padding: 8px 16px; cursor: pointer; font-size: 13px; color: #e6edf3; }
@@ -377,9 +369,6 @@ body { font-family: 'Microsoft YaHei', sans-serif; font-size: 14px; background: 
   <div class="side-panel">
     <h3>已完成出刀 <span id="placedCount"></span></h3>
     <div class="record-list" id="recordList"></div>
-    <div class="footer">
-      <button onclick="clearCurrentZone()">清空当前区域</button>
-    </div>
   </div>
 </div>
 
@@ -1499,20 +1488,6 @@ function removePlacement(name, knifeIndex) {
   renderChips();
   renderCompleted();
   renderMap();
-}
-
-function clearCurrentZone() {
-  if (!isLockHolder) { alert('请先获取操作权限'); return; }
-  if (!confirm('确定清空 ' + currentArea + ' 区所有出刀安排？')) return;
-  placements[currentArea] = {};
-  // 重新计算所有成员剩余刀数
-  members.forEach(function(name) {
-    var total = 0;
-    ['D','E','F'].forEach(function(z) { total += (placements[z] && placements[z][name] ? placements[z][name].length : 0); });
-    knivesLeft[name] = Math.max(0, 3 - total);
-  });
-  save();
-  render();
 }
 
 // ═══════════════════════════════════════════
