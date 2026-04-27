@@ -270,7 +270,7 @@ body { font-family: 'Microsoft YaHei', sans-serif; font-size: 14px; background: 
   <button class="btn btn-gray" onclick="clearBg()">清背景</button>
   <button class="btn btn-gray" onclick="clearAllPlacements()">重置排刀</button>
   <div class="vsep"></div>
-  <span class="version-info" id="versionInfo">v1.0.1</span>
+  <span class="version-info" id="versionInfo">v1.0.2</span>
   <span class="lock-info" id="lockInfo"></span>
   <button class="btn" id="btnLock" onclick="showLockModal()">申请操作权</button>
   <button class="btn btn-red" id="btnRelease" style="display:none" onclick="releaseLock()">释放操作权</button>
@@ -351,6 +351,14 @@ let placements = { D: {}, E: {}, F: {} };
 // 成员剩余未安排刀数：{ "张三": 2 }，为0时该成员从左侧消失，进入右侧已完成
 let knivesLeft = {};
 let bgImages = { D: null, E: null, F: null };
+// 旧数据迁移：'__cleared__' 哨兵值统一转为 null
+function migrateBgImages(obj) {
+  if (!obj) return obj;
+  ['D','E','F'].forEach(function(z) {
+    if (obj[z] === '__cleared__') obj[z] = null;
+  });
+  return obj;
+}
 let db = null;
 let supabaseSyncing = false; // 防止 realtime 回写触发死循环
 let saveVersion = 1; // 版本号，每次 save 成功 +1
@@ -462,7 +470,7 @@ async function initSupabase() {
     try {
       await openDB();
       var stored = await idbGet('bgImages');
-      if (stored) bgImages = stored;
+      if (stored) bgImages = migrateBgImages(stored);
     } catch(e) {}
     // 从 localStorage 恢复成员和出刀记录
     try {
@@ -480,7 +488,7 @@ async function initSupabase() {
           });
           placements = d.placements;
         }
-        if (d.bgImages) bgImages = d.bgImages;
+        if (d.bgImages) bgImages = migrateBgImages(d.bgImages);
         if (d.knivesLeft) {
           knivesLeft = d.knivesLeft;
         } else {
@@ -506,7 +514,7 @@ async function initSupabase() {
     await openDB();
     // fetch 前再次读取 bgImages（捕获 init() 时尚未完成的 IndexedDB 读取结果）
     var stored2 = await idbGet('bgImages');
-    if (stored2) bgImages = stored2;
+    if (stored2) bgImages = migrateBgImages(stored2);
 
     // fetch 当前数据
     var resp = await supabase
@@ -532,7 +540,7 @@ async function initSupabase() {
           placements = p;
         }
         if (resp.data.data.bgImages) {
-          bgImages = resp.data.data.bgImages;
+          bgImages = migrateBgImages(resp.data.data.bgImages);
           idbPut('bgImages', bgImages);
         }
         // knivesLeft：本地优先，Supabase 只补充本地没有的名字
@@ -592,7 +600,7 @@ async function initSupabase() {
             }
           }
           if (payload.new.data.bgImages) {
-            bgImages = payload.new.data.bgImages;
+            bgImages = migrateBgImages(payload.new.data.bgImages);
             idbPut('bgImages', bgImages);
             dataChanged = true;
           }
@@ -681,7 +689,7 @@ async function initSupabase() {
         members = d.members;
       }
       if (d.bgImages) {
-        bgImages = d.bgImages;
+        bgImages = migrateBgImages(d.bgImages);
         idbPut('bgImages', bgImages);
       }
     }
@@ -702,7 +710,7 @@ async function init() {
   try {
     await openDB();
     var stored = await idbGet('bgImages');
-    if (stored) bgImages = stored;
+    if (stored) bgImages = migrateBgImages(stored);
   } catch(e) { console.warn('IndexedDB 读取失败', e); }
 
   // 2. 加载/连接 Supabase
